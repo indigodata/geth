@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -441,7 +442,7 @@ func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 }
 
 func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer) error {
-	utcTime := time.Now().UTC().Format(time.RFC3339)
+	utcTime := time.Now().UTC().UnixNano()
 
 	// New transaction announcement arrived, make sure we have
 	// a valid and fresh chain to handle them
@@ -458,7 +459,8 @@ func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer
     	hexHashes = append(hexHashes, hash.Hex())
 	}
 	// Log the recieved new transaction hashes
-	log.Info("INDIGO new_hash_66", utcTime, peer.id, hexHashes)
+	log_details:= fmt.Sprintf("INDIGO new_hash_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
+	log.Info(log_details)
 
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range *ann {
@@ -468,7 +470,7 @@ func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer
 }
 
 func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer) error {
-	utcTime := time.Now().UTC().Format(time.RFC3339)
+	utcTime := time.Now().UTC().UnixNano()
 
 	// New transaction announcement arrived, make sure we have
 	// a valid and fresh chain to handle them
@@ -487,8 +489,10 @@ func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer
 	for _, hash := range ann.Hashes {
     	hexHashes = append(hexHashes, hash.Hex())
 	}
+	
 	// Log the recieved new transaction hashes
-	log.Info("INDIGO new_hash_66", utcTime, peer.id, hexHashes)
+	log_details:= fmt.Sprintf("INDIGO new_hash_68 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
+	log.Info(log_details)
 
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range ann.Hashes {
@@ -498,7 +502,7 @@ func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer
 }
 
 func handleGetPooledTransactions66(backend Backend, msg Decoder, peer *Peer) error {
-	utcTime := time.Now().UTC().Format(time.RFC3339)
+	utcTime := time.Now().UTC().UnixNano()
 
 	// Decode the pooled transactions retrieval message
 	var query GetPooledTransactionsPacket66
@@ -511,7 +515,8 @@ func handleGetPooledTransactions66(backend Backend, msg Decoder, peer *Peer) err
     	hexHashes = append(hexHashes, hash.Hex())
 	}
 	// Log the received message details
-	log.Info("INDIGO get_tx_66", utcTime, peer.id, hexHashes)
+	log_details:= fmt.Sprintf("INDIGO get_tx_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
+	log.Info(log_details)
 
 	hashes, txs := answerGetPooledTransactions(backend, query.GetPooledTransactionsPacket, peer)
 	return peer.ReplyPooledTransactionsRLP(query.RequestId, hashes, txs)

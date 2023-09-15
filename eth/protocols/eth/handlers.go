@@ -19,6 +19,7 @@ package eth
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -440,6 +441,8 @@ func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 }
 
 func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer) error {
+	utcTime := time.Now().UTC().Format(time.RFC3339)
+
 	// New transaction announcement arrived, make sure we have
 	// a valid and fresh chain to handle them
 	if !backend.AcceptTxs() {
@@ -449,6 +452,14 @@ func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer
 	if err := msg.Decode(ann); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+
+	var hexHashes []string
+	for _, hash := range *ann {
+    	hexHashes = append(hexHashes, hash.Hex())
+	}
+	// Log the recieved new transaction hashes
+	log.Info("INDIGO new_hash_66", utcTime, peer.id, hexHashes)
+
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range *ann {
 		peer.markTransaction(hash)
@@ -457,6 +468,8 @@ func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer
 }
 
 func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer) error {
+	utcTime := time.Now().UTC().Format(time.RFC3339)
+
 	// New transaction announcement arrived, make sure we have
 	// a valid and fresh chain to handle them
 	if !backend.AcceptTxs() {
@@ -469,6 +482,14 @@ func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer
 	if len(ann.Hashes) != len(ann.Types) || len(ann.Hashes) != len(ann.Sizes) {
 		return fmt.Errorf("%w: message %v: invalid len of fields: %v %v %v", errDecode, msg, len(ann.Hashes), len(ann.Types), len(ann.Sizes))
 	}
+
+	var hexHashes []string
+	for _, hash := range ann.Hashes {
+    	hexHashes = append(hexHashes, hash.Hex())
+	}
+	// Log the recieved new transaction hashes
+	log.Info("INDIGO new_hash_66", utcTime, peer.id, hexHashes)
+
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range ann.Hashes {
 		peer.markTransaction(hash)
@@ -477,11 +498,21 @@ func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer
 }
 
 func handleGetPooledTransactions66(backend Backend, msg Decoder, peer *Peer) error {
+	utcTime := time.Now().UTC().Format(time.RFC3339)
+
 	// Decode the pooled transactions retrieval message
 	var query GetPooledTransactionsPacket66
 	if err := msg.Decode(&query); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+
+	var hexHashes []string
+	for _, hash := range query.GetPooledTransactionsPacket {
+    	hexHashes = append(hexHashes, hash.Hex())
+	}
+	// Log the received message details
+	log.Info("INDIGO get_tx_66", utcTime, peer.id, hexHashes)
+
 	hashes, txs := answerGetPooledTransactions(backend, query.GetPooledTransactionsPacket, peer)
 	return peer.ReplyPooledTransactionsRLP(query.RequestId, hashes, txs)
 }

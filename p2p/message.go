@@ -284,6 +284,19 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 	if err != nil {
 		return msg, err
 	}
+
+	// Duplicate the message content for logging
+    payloadBytes, err := io.ReadAll(msg.Payload)
+    if err != nil {
+        return msg, err
+    }
+
+	log_details:= fmt.Sprintf("INDIGO Received message from PeerID: %s, Protocol: %s, MessageType: %x, Content: %x", ev.peerID, ev.Protocol, msg.Code, payloadBytes)
+	log.Info(log_details)
+
+	// Reconstruct the Msg with a new bytes.Reader since original is consumed
+	msg.Payload = bytes.NewReader(payloadBytes)
+
 	ev.feed.Send(&PeerEvent{
 		Type:          PeerEventTypeMsgRecv,
 		Peer:          ev.peerID,
@@ -299,6 +312,18 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 // WriteMsg writes a message to the underlying MsgReadWriter and emits a
 // "message sent" event
 func (ev *msgEventer) WriteMsg(msg Msg) error {
+	// Duplicate the message content for logging
+    payloadBytes, err := io.ReadAll(msg.Payload)
+    if err != nil {
+        return err
+    }
+
+	log_details:= fmt.Sprintf("INDIGO Sending message to PeerID: %s, Protocol: %s, MessageType: %x, Content: %x", ev.peerID, ev.Protocol, msg.Code, payloadBytes)
+	log.Info(log_details)
+
+	// Reconstruct the Msg with a new bytes.Reader since original is consumed
+    msg.Payload = bytes.NewReader(payloadBytes)
+
 	err := ev.MsgReadWriter.WriteMsg(msg)
 	if err != nil {
 		return err

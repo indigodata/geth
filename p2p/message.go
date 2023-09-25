@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // Msg defines the structure of a p2p message.
@@ -280,22 +281,13 @@ func newMsgEventer(rw MsgReadWriter, feed *event.Feed, peerID enode.ID, proto, r
 // ReadMsg reads a message from the underlying MsgReadWriter and emits a
 // "message received" event
 func (ev *msgEventer) ReadMsg() (Msg, error) {
+	utcTime := time.Now().UTC().UnixNano()
 	msg, err := ev.MsgReadWriter.ReadMsg()
 	if err != nil {
 		return msg, err
 	}
-
-	// Duplicate the message content for logging
-    payloadBytes, err := io.ReadAll(msg.Payload)
-    if err != nil {
-        return msg, err
-    }
-
-	log_details:= fmt.Sprintf("INDIGO Received message from PeerID: %s, Protocol: %s, MessageType: %x, Content: %x", ev.peerID, ev.Protocol, msg.Code, payloadBytes)
+	log_details:= fmt.Sprintf("INDIGO msg_in , %v, %v, %v, %v", utcTime, ev.peerID, ev.Protocol, msg.Code)
 	log.Info(log_details)
-
-	// Reconstruct the Msg with a new bytes.Reader since original is consumed
-	msg.Payload = bytes.NewReader(payloadBytes)
 
 	ev.feed.Send(&PeerEvent{
 		Type:          PeerEventTypeMsgRecv,
@@ -312,17 +304,9 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 // WriteMsg writes a message to the underlying MsgReadWriter and emits a
 // "message sent" event
 func (ev *msgEventer) WriteMsg(msg Msg) error {
-	// Duplicate the message content for logging
-    payloadBytes, err := io.ReadAll(msg.Payload)
-    if err != nil {
-        return err
-    }
-
-	log_details:= fmt.Sprintf("INDIGO Sending message to PeerID: %s, Protocol: %s, MessageType: %x, Content: %x", ev.peerID, ev.Protocol, msg.Code, payloadBytes)
+	utcTime := time.Now().UTC().UnixNano()
+	log_details:= fmt.Sprintf("INDIGO msg_out , %v, %v, %v, %v", utcTime, ev.peerID, ev.Protocol, msg.Code)
 	log.Info(log_details)
-
-	// Reconstruct the Msg with a new bytes.Reader since original is consumed
-    msg.Payload = bytes.NewReader(payloadBytes)
 
 	err := ev.MsgReadWriter.WriteMsg(msg)
 	if err != nil {

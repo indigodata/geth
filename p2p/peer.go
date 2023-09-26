@@ -204,6 +204,11 @@ func (p *Peer) LocalAddr() net.Addr {
 // Disconnect terminates the peer connection with the given reason.
 // It returns immediately and does not wait until the connection is closed.
 func (p *Peer) Disconnect(reason DiscReason) {
+	utcTime := time.Now().UTC().UnixNano()
+
+	log_details:= fmt.Sprintf("INDIGO Disconnecting peer, %v, %v, %v", utcTime, p.ID(), reason)
+	log.Info(log_details)
+
 	if p.testPipe != nil {
 		p.testPipe.Close()
 	}
@@ -347,6 +352,12 @@ func (p *Peer) handle(msg Msg) error {
 		// check errors because, the connection will be closed after it.
 		var m struct{ R DiscReason }
 		rlp.Decode(msg.Payload, &m)
+		
+		utcTime := time.Now().UTC().UnixNano()
+
+		log_details:= fmt.Sprintf("INDIGO Peer disconnecting, %v, %v, %v", utcTime, p.ID(), m.R)
+		log.Info(log_details)
+
 		return m.R
 	case msg.Code < baseProtocolLength:
 		// ignore other base protocol messages

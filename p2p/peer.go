@@ -206,7 +206,7 @@ func (p *Peer) LocalAddr() net.Addr {
 func (p *Peer) Disconnect(reason DiscReason) {
 	utcTime := time.Now().UTC().UnixNano()
 
-	log_details:= fmt.Sprintf("INDIGO Disconnecting peer, %v, %v, %v", utcTime, p.ID(), reason)
+	log_details:= fmt.Sprintf("INDIGO peer_disc_out, %v, %v, %v", utcTime, p.ID(), reason)
 	log.Info(log_details)
 
 	if p.testPipe != nil {
@@ -355,7 +355,7 @@ func (p *Peer) handle(msg Msg) error {
 		
 		utcTime := time.Now().UTC().UnixNano()
 
-		log_details:= fmt.Sprintf("INDIGO Peer disconnecting, %v, %v, %v", utcTime, p.ID(), m.R)
+		log_details:= fmt.Sprintf("INDIGO peer_disc_in, %v, %v, %v", utcTime, p.ID(), m.R)
 		log.Info(log_details)
 
 		return m.R

@@ -39,6 +39,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/golang/snappy"
 	"golang.org/x/crypto/sha3"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // Conn is an RLPx network connection. It wraps a low-level network connection. The
@@ -309,13 +310,13 @@ func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
 		sec, err = h.runInitiator(c.conn, prv, c.dialDest)
 		// unhashed
 		peerID :=  crypto.FromECDSAPub(sec.remote)[1:]
-		log_details:= fmt.Sprintf("INDIGO Dial handshake, %v, %v", utcTime, peerID)
+		log_details:= fmt.Sprintf("INDIGO handshake_out, %v, %v", utcTime, peerID)
 		log.Info(log_details)
 	} else {
 		sec, err = h.runRecipient(c.conn, prv)
 		// unhashed
 		peerID :=  crypto.FromECDSAPub(sec.remote)[1:]
-		log_details:= fmt.Sprintf("INDIGO Inbound handshake, %v, %v", utcTime, peerID)
+		log_details:= fmt.Sprintf("INDIGO handshake_in, %v, %v", utcTime, peerID)
 		log.Info(log_details)
 	}
 	if err != nil {

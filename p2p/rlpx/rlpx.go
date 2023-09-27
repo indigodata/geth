@@ -26,6 +26,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"hash"
@@ -296,6 +297,14 @@ func (m *hashMAC) compute(sum1, seed []byte) []byte {
 	return sum2[:16]
 }
 
+func ecdsaToNodeID(pubKey *ecdsa.PublicKey) string {
+	peerID := hex.EncodeToString(crypto.FromECDSAPub(pubKey))
+	if len(peerID) > 0 {
+		peerID = peerID[2:]
+	}
+	return peerID
+}
+
 // Handshake performs the handshake. This must be called before any data is written
 // or read from the connection.
 func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
@@ -309,13 +318,13 @@ func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
 	if c.dialDest != nil {
 		sec, err = h.runInitiator(c.conn, prv, c.dialDest)
 		// unhashed
-		peerID :=  crypto.FromECDSAPub(sec.remote)[1:]
+		peerID := ecdsaToNodeID(sec.remote)
 		log_details:= fmt.Sprintf("INDIGO handshake_out, %v, %v", utcTime, peerID)
 		log.Info(log_details)
 	} else {
 		sec, err = h.runRecipient(c.conn, prv)
 		// unhashed
-		peerID :=  crypto.FromECDSAPub(sec.remote)[1:]
+		peerID := ecdsaToNodeID(sec.remote)
 		log_details:= fmt.Sprintf("INDIGO handshake_in, %v, %v", utcTime, peerID)
 		log.Info(log_details)
 	}

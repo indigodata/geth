@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -206,7 +207,9 @@ func (p *Peer) LocalAddr() net.Addr {
 func (p *Peer) Disconnect(reason DiscReason) {
 	utcTime := time.Now().UTC().UnixNano()
 
-	log_details:= fmt.Sprintf("INDIGO peer_disc_out, %v, %v, %v", utcTime, p.ID(), reason)
+	disc_reason := strings.ReplaceAll(reason.String(), " ", "_")
+
+	log_details := fmt.Sprintf("INDIGO peer_disc_out %v %v %v", utcTime, p.ID(), disc_reason)
 	log.Info(log_details)
 
 	if p.testPipe != nil {
@@ -352,10 +355,10 @@ func (p *Peer) handle(msg Msg) error {
 		// check errors because, the connection will be closed after it.
 		var m struct{ R DiscReason }
 		rlp.Decode(msg.Payload, &m)
-		
-		utcTime := time.Now().UTC().UnixNano()
 
-		log_details:= fmt.Sprintf("INDIGO peer_disc_in, %v, %v, %v", utcTime, p.ID(), m.R)
+		utcTime := time.Now().UTC().UnixNano()
+		disc_reason := strings.ReplaceAll(m.R.String(), " ", "_")
+		log_details := fmt.Sprintf("INDIGO peer_disc_in %v %v %v", utcTime, p.ID(), disc_reason)
 		log.Info(log_details)
 
 		return m.R

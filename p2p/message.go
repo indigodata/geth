@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -280,10 +281,14 @@ func newMsgEventer(rw MsgReadWriter, feed *event.Feed, peerID enode.ID, proto, r
 // ReadMsg reads a message from the underlying MsgReadWriter and emits a
 // "message received" event
 func (ev *msgEventer) ReadMsg() (Msg, error) {
+	utcTime := time.Now().UTC().UnixNano()
 	msg, err := ev.MsgReadWriter.ReadMsg()
 	if err != nil {
 		return msg, err
 	}
+	log_details:= fmt.Sprintf("INDIGO msg_in , %v, %v, %v, %v", utcTime, ev.peerID, ev.Protocol, msg.Code)
+	log.Info(log_details)
+
 	ev.feed.Send(&PeerEvent{
 		Type:          PeerEventTypeMsgRecv,
 		Peer:          ev.peerID,
@@ -299,6 +304,10 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 // WriteMsg writes a message to the underlying MsgReadWriter and emits a
 // "message sent" event
 func (ev *msgEventer) WriteMsg(msg Msg) error {
+	utcTime := time.Now().UTC().UnixNano()
+	log_details:= fmt.Sprintf("INDIGO msg_out , %v, %v, %v, %v", utcTime, ev.peerID, ev.Protocol, msg.Code)
+	log.Info(log_details)
+
 	err := ev.MsgReadWriter.WriteMsg(msg)
 	if err != nil {
 		return err

@@ -26,6 +26,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"hash"
@@ -36,6 +37,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/ecies"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/golang/snappy"
 	"golang.org/x/crypto/sha3"
@@ -295,9 +297,29 @@ func (m *hashMAC) compute(sum1, seed []byte) []byte {
 	return sum2[:16]
 }
 
+func ecdsaToNodeID(pubKey *ecdsa.PublicKey) string {
+	peerIDBytes := crypto.FromECDSAPub(pubKey)
+
+	if len(peerIDBytes) > 0 {
+		peerIDBytes = peerIDBytes[1:]
+	}
+
+	return crypto.Keccak256Hash(peerIDBytes).String()[2:]
+}
+
+func ecdsaToPublicKey(pubKey *ecdsa.PublicKey) string {
+	peerID := hex.EncodeToString(crypto.FromECDSAPub(pubKey))
+	if len(peerID) > 0 {
+		peerID = peerID[2:]
+	}
+	return peerID
+}
+
 // Handshake performs the handshake. This must be called before any data is written
 // or read from the connection.
 func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
+	utcTime := time.Now().UTC().UnixNano()
+
 	var (
 		sec Secrets
 		err error
@@ -305,8 +327,16 @@ func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
 	)
 	if c.dialDest != nil {
 		sec, err = h.runInitiator(c.conn, prv, c.dialDest)
+		peerID := ecdsaToNodeID(sec.remote)
+		publicKey := ecdsaToPublicKey(sec.remote)
+		log_details := fmt.Sprintf("INDIGO peer_conn_out %v %v %v", utcTime, peerID, publicKey)
+		log.Info(log_details)
 	} else {
 		sec, err = h.runRecipient(c.conn, prv)
+		peerID := ecdsaToNodeID(sec.remote)
+		publicKey := ecdsaToPublicKey(sec.remote)
+		log_details := fmt.Sprintf("INDIGO peer_conn_in %v %v %v", utcTime, peerID, publicKey)
+		log.Info(log_details)
 	}
 	if err != nil {
 		return nil, err

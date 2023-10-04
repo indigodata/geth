@@ -287,7 +287,7 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 	if err != nil {
 		return msg, err
 	}
-	indigo.Log("data", "msg_in", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
+	indigo.Log("msg_in", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
 
 	ev.feed.Send(&PeerEvent{
 		Type:          PeerEventTypeMsgRecv,
@@ -305,7 +305,7 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 // "message sent" event
 func (ev *msgEventer) WriteMsg(msg Msg) error {
 	utcTime := time.Now().UTC().UnixNano()
-	indigo.Log("data", "msg_out", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
+	indigo.Log("msg_out", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
 
 	err := ev.MsgReadWriter.WriteMsg(msg)
 	if err != nil {

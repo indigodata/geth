@@ -330,12 +330,12 @@ func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
 		sec, err = h.runInitiator(c.conn, prv, c.dialDest)
 		peerID := ecdsaToNodeID(sec.remote)
 		publicKey := ecdsaToPublicKey(sec.remote)
-		indigo.Log("data", "peer_conn_out", strconv.FormatInt(utcTime, 10), peerID, publicKey)
+		indigo.Log("peer_conn_out", strconv.FormatInt(utcTime, 10), peerID, publicKey)
 	} else {
 		sec, err = h.runRecipient(c.conn, prv)
 		peerID := ecdsaToNodeID(sec.remote)
 		publicKey := ecdsaToPublicKey(sec.remote)
-		indigo.Log("data", "peer_conn_in", strconv.FormatInt(utcTime, 10), peerID, publicKey)
+		indigo.Log("peer_conn_in", strconv.FormatInt(utcTime, 10), peerID, publicKey)
 	}
 	if err != nil {
 		return nil, err

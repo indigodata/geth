@@ -31,7 +31,8 @@ type CsvLogger struct {
 }
 
 // getOrCreateLogger fetches or creates a logger for the specified directories.
-func getOrCreateLogger(mainDir, subDir string) *CsvLogger {
+func getOrCreateLogger(subDir string) *CsvLogger {
+	mainDir := "network_feed"
 	key := mainDir + ":" + subDir
 	if logger, exists := loggersMap.Load(key); exists {
 		return logger.(*CsvLogger)
@@ -65,11 +66,11 @@ func (l *CsvLogger) currentFilename() string {
 }
 
 // Log logs the given entries with the provided directories.
-func Log(mainDir, subDir string, entries ...string) {
-	if syncMode != "full" {
-		return
-	}
-	logger := getOrCreateLogger(mainDir, subDir)
+func Log(subDir string, entries ...string) {
+	// if syncMode != "full" {
+	// 	return
+	// }
+	logger := getOrCreateLogger(subDir)
 	logger.logCh <- entries
 }
 

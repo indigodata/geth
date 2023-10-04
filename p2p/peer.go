@@ -208,11 +208,7 @@ func (p *Peer) LocalAddr() net.Addr {
 // It returns immediately and does not wait until the connection is closed.
 func (p *Peer) Disconnect(reason DiscReason) {
 	utcTime := time.Now().UTC().UnixNano()
-
 	disc_reason := strings.ReplaceAll(reason.String(), " ", "_")
-
-	log_details := fmt.Sprintf("INDIGO peer_disc_out %v %v %v", utcTime, p.ID(), disc_reason)
-	log.Info(log_details)
 	indigo.Log("data", "peer_disc_out", strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason)
 
 	if p.testPipe != nil {
@@ -361,8 +357,6 @@ func (p *Peer) handle(msg Msg) error {
 
 		utcTime := time.Now().UTC().UnixNano()
 		disc_reason := strings.ReplaceAll(m.R.String(), " ", "_")
-		log_details := fmt.Sprintf("INDIGO peer_disc_in %v %v %v", utcTime, p.ID(), disc_reason)
-		log.Info(log_details)
 		indigo.Log("data", "peer_disc_in", strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason)
 
 		return m.R

@@ -461,8 +461,6 @@ func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer
 		hexHashes = append(hexHashes, hash.Hex())
 	}
 	// Log the recieved new transaction hashes
-	log_details := fmt.Sprintf("INDIGO new_hash_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
-	log.Info(log_details)
 	indigo.Log("data", "new_hash_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
 
 	// Schedule all the unknown hashes for retrieval
@@ -494,8 +492,6 @@ func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer
 	}
 
 	// Log the recieved new transaction hashes
-	log_details := fmt.Sprintf("INDIGO new_hash_68 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
-	log.Info(log_details)
 	indigo.Log("data", "new_hash_68", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
 
 	// Schedule all the unknown hashes for retrieval
@@ -519,8 +515,6 @@ func handleGetPooledTransactions66(backend Backend, msg Decoder, peer *Peer) err
 		hexHashes = append(hexHashes, hash.Hex())
 	}
 	// Log the received message details
-	log_details := fmt.Sprintf("INDIGO get_tx_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
-	log.Info(log_details)
 	indigo.Log("data", "get_tx_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
 
 	hashes, txs := answerGetPooledTransactions(backend, query.GetPooledTransactionsPacket, peer)

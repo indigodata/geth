@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+var syncMode string
+
+func SetSyncMode(mode string) {
+	syncMode = mode
+}
+
 var (
 	loggersMap sync.Map // To keep track of CsvLoggers by directory strings
 )
@@ -56,6 +62,9 @@ func (l *CsvLogger) currentFilename() string {
 
 // Log logs the given entries with the provided directories.
 func Log(mainDir, subDir string, entries ...string) {
+	if syncMode != "full" {
+		return
+	}
 	logger := getOrCreateLogger(mainDir, subDir)
 	logger.logCh <- entries
 }

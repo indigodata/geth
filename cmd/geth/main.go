@@ -345,6 +345,7 @@ func geth(ctx *cli.Context) error {
 	// Set the syncmode for the indigo package
 	cfg := loadBaseConfig(ctx)
 	indigo.SetSyncMode(cfg.Eth.SyncMode.String())
+	indigo.SetDataDir(cfg.Node.DataDir)
 	fmt.Println("sync mode is ", cfg.Eth.SyncMode.String())
 	startNode(ctx, stack, backend, false)
 	stack.Wait()

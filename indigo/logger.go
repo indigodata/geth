@@ -9,9 +9,14 @@ import (
 )
 
 var syncMode string
+var dataDir string
 
 func SetSyncMode(mode string) {
 	syncMode = mode
+}
+
+func SetDataDir(dir string) {
+	dataDir = dir
 }
 
 var (
@@ -31,12 +36,11 @@ func getOrCreateLogger(mainDir, subDir string) *CsvLogger {
 	if logger, exists := loggersMap.Load(key); exists {
 		return logger.(*CsvLogger)
 	} else {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Printf("Error fetching home directory: %v\n", err)
+		if dataDir == "" {
+			fmt.Println("Error: dataDir is not set.")
 			return nil
 		}
-		fullMainDir := filepath.Join(homeDir, mainDir)
+		fullMainDir := filepath.Join(dataDir, mainDir)
 
 		l := &CsvLogger{
 			mainDir: fullMainDir,

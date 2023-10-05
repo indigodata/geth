@@ -15,9 +15,6 @@ if [[ ! "$base_dir" = /* ]]; then
     exit 1
 fi
 
-# Current UTC hour
-current_hour=$(date -u +"%H")
-
 # S3 base path
 s3_base_path="s3://indigo-snowflake-staging/offchain/network_feed/$node_id"
 
@@ -29,14 +26,19 @@ for dir in "$base_dir"/*; do
 
         # S3 upload path
         s3_path="$s3_base_path/$directory"
+        
+        # Current UTC hour
+        current_hour=$(date -u +"%H")
 
         # Find CSVs, but exclude ones matching current UTC hour
-        find "$dir" -maxdepth 1 -type f -name '*.csv' ! -name "*-${current_hour}.csv" | while read csv_file; do
+        find "$dir" -maxdepth 1 -type f -name '*.csv' ! -name "*-${current_hour}.csv" | while read -r csv_file; do
             # Compress the CSV into GZIP
             gzip "$csv_file"
 
             # Upload to S3
             if aws s3 cp "${csv_file}.gz" "$s3_path/"; then
+                # Print the uploaded file's path
+                echo "Uploaded ${csv_file}.gz to $s3_path/"
                 # Remove local gzip file after successful upload
                 rm "${csv_file}.gz"
             else

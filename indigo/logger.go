@@ -61,7 +61,7 @@ func (l *CsvLogger) listen() {
 }
 
 func (l *CsvLogger) currentFilename() string {
-	now := time.Now()
+	now := time.Now().UTC()
 	return fmt.Sprintf("%s/%s/%d%02d%02d-%02d.csv", l.mainDir, l.subDir, now.Year(), now.Month(), now.Day(), now.Hour())
 }
 

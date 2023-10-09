@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	bufferSize   = 500
+	flushTimeout = 5 * time.Second
+)
+
 var syncMode string
 var dataDir string
 
@@ -19,72 +24,73 @@ func SetDataDir(dir string) {
 	dataDir = dir
 }
 
-var (
-	loggersMap sync.Map // To keep track of CsvLoggers by directory strings
-)
+var loggersMap sync.Map
 
 type CsvLogger struct {
-	mainDir string
-	subDir  string
-	logCh   chan []string
-	mu      sync.Mutex
+	mainDir    string
+	subDir     string
+	logCh      chan []string
+	mu         sync.Mutex
+	buffer     [][]string
+	flushTimer *time.Timer
 }
 
-// getOrCreateLogger fetches or creates a logger for the specified directories.
 func getOrCreateLogger(subDir string) *CsvLogger {
 	mainDir := "network_feed"
 	key := mainDir + ":" + subDir
 	if logger, exists := loggersMap.Load(key); exists {
 		return logger.(*CsvLogger)
-	} else {
-		if dataDir == "" {
-			fmt.Println("Error: dataDir is not set.")
-			return nil
-		}
-		fullMainDir := filepath.Join(dataDir, mainDir)
-
-		l := &CsvLogger{
-			mainDir: fullMainDir,
-			subDir:  subDir,
-			logCh:   make(chan []string, 100), // buffer of 100, can adjust as needed
-		}
-		go l.listen()
-		loggersMap.Store(key, l)
-		return l
 	}
+
+	if dataDir == "" {
+		fmt.Println("Error: dataDir is not set.")
+		return nil
+	}
+
+	fullMainDir := filepath.Join(dataDir, mainDir)
+
+	l := &CsvLogger{
+		mainDir:    fullMainDir,
+		subDir:     subDir,
+		logCh:      make(chan []string, bufferSize),
+		buffer:     make([][]string, 0, bufferSize),
+		flushTimer: time.NewTimer(flushTimeout),
+	}
+
+	go l.listen()
+
+	loggersMap.Store(key, l)
+	return l
 }
 
 func (l *CsvLogger) listen() {
-	for entry := range l.logCh {
-		l.writeToCsv(entry)
+	for {
+		select {
+		case entry := <-l.logCh:
+			l.buffer = append(l.buffer, entry)
+			if len(l.buffer) >= bufferSize {
+				l.flushBuffer()
+			}
+		case <-l.flushTimer.C:
+			l.flushBuffer()
+			l.flushTimer.Reset(flushTimeout)
+		}
 	}
 }
 
-func (l *CsvLogger) currentFilename() string {
-	now := time.Now().UTC()
-	return fmt.Sprintf("%s/%s/%d%02d%02d-%02d.csv", l.mainDir, l.subDir, now.Year(), now.Month(), now.Day(), now.Hour())
-}
-
-// Log logs the given entries with the provided directories.
-func Log(subDir string, entries ...string) {
-	// if syncMode != "full" {
-	// 	return
-	// }
-	logger := getOrCreateLogger(subDir)
-	logger.logCh <- entries
-}
-
-func (l *CsvLogger) writeToCsv(entries []string) {
+func (l *CsvLogger) flushBuffer() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+
+	if len(l.buffer) == 0 {
+		return
+	}
 
 	filename := l.currentFilename()
 
 	dir := filepath.Dir(filename)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		// Create directory structure if it doesn't exist
-		err := os.MkdirAll(dir, 0755) // 0755 is a common permission for directories
-		if err != nil {
+		if err := os.MkdirAll(dir, 0755); err != nil {
 			fmt.Printf("Error creating directories: %v\n", err)
 			return
 		}
@@ -97,8 +103,18 @@ func (l *CsvLogger) writeToCsv(entries []string) {
 	}
 	defer file.Close()
 
-	line := fmt.Sprintf("\"%s\"\n", join(entries, "\",\""))
-	file.WriteString(line)
+	for _, entries := range l.buffer {
+		line := fmt.Sprintf("\"%s\"\n", join(entries, "\",\""))
+		file.WriteString(line)
+	}
+
+	// Clear the buffer
+	l.buffer = l.buffer[:0]
+}
+
+func Log(subDir string, entries ...string) {
+	logger := getOrCreateLogger(subDir)
+	logger.logCh <- entries
 }
 
 func join(strs []string, sep string) string {
@@ -110,4 +126,9 @@ func join(strs []string, sep string) string {
 		result += s
 	}
 	return result
+}
+
+func (l *CsvLogger) currentFilename() string {
+	now := time.Now().UTC()
+	return fmt.Sprintf("%s/%s/%d%02d%02d-%02d.csv", l.mainDir, l.subDir, now.Year(), now.Month(), now.Day(), now.Hour())
 }

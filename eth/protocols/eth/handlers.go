@@ -461,7 +461,8 @@ func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer
 	// Log the recieved new transaction hashes
 	// indigo.Log("new_hash_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
 	log_details := fmt.Sprintf("INDIGO new_hash_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
-	log.Info(log_details)
+	// log.Info(log_details)
+	fmt.Print(log_details)
 
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range *ann {
@@ -494,7 +495,8 @@ func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer
 	// Log the recieved new transaction hashes
 	// indigo.Log("new_hash_68", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
 	log_details := fmt.Sprintf("INDIGO new_hash_68 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
-	log.Info(log_details)
+	// log.Info(log_details)
+	fmt.Print(log_details)
 
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range ann.Hashes {
@@ -519,7 +521,8 @@ func handleGetPooledTransactions66(backend Backend, msg Decoder, peer *Peer) err
 	// Log the received message details
 	// indigo.Log("get_tx_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
 	log_details := fmt.Sprintf("INDIGO get_tx_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
-	log.Info(log_details)
+	// log.Info(log_details)
+	fmt.Print(log_details)
 
 	hashes, txs := answerGetPooledTransactions(backend, query.GetPooledTransactionsPacket, peer)
 	return peer.ReplyPooledTransactionsRLP(query.RequestId, hashes, txs)

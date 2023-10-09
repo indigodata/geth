@@ -1,15 +1,18 @@
 package indigo
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/log" // Importing the Geth logger
 )
 
 const (
-	bufferSize   = 500
+	bufferSize   = 200
 	flushTimeout = 5 * time.Second
 )
 
@@ -43,7 +46,7 @@ func getOrCreateLogger(subDir string) *CsvLogger {
 	}
 
 	if dataDir == "" {
-		fmt.Println("Error: dataDir is not set.")
+		log.Error("dataDir is not set.")
 		return nil
 	}
 
@@ -69,9 +72,11 @@ func (l *CsvLogger) listen() {
 		case entry := <-l.logCh:
 			l.buffer = append(l.buffer, entry)
 			if len(l.buffer) >= bufferSize {
+				log.Info(fmt.Sprintf("INDIGO buffer size limit %v", l.subDir))
 				l.flushBuffer()
 			}
 		case <-l.flushTimer.C:
+			log.Info(fmt.Sprintf("INDIGO 5 second buffer %v", l.subDir))
 			l.flushBuffer()
 			l.flushTimer.Reset(flushTimeout)
 		}
@@ -103,10 +108,12 @@ func (l *CsvLogger) flushBuffer() {
 	}
 	defer file.Close()
 
+	writer := bufio.NewWriter(file)
 	for _, entries := range l.buffer {
 		line := fmt.Sprintf("\"%s\"\n", join(entries, "\",\""))
-		file.WriteString(line)
+		writer.WriteString(line)
 	}
+	writer.Flush()
 
 	// Clear the buffer
 	l.buffer = l.buffer[:0]

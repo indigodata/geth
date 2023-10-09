@@ -19,7 +19,6 @@ package eth
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -27,7 +26,6 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/indigo"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
@@ -461,7 +459,9 @@ func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer
 		hexHashes = append(hexHashes, hash.Hex())
 	}
 	// Log the recieved new transaction hashes
-	indigo.Log("new_hash_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
+	// indigo.Log("new_hash_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
+	log_details := fmt.Sprintf("INDIGO new_hash_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
+	log.Info(log_details)
 
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range *ann {
@@ -492,7 +492,9 @@ func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer
 	}
 
 	// Log the recieved new transaction hashes
-	indigo.Log("new_hash_68", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
+	// indigo.Log("new_hash_68", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
+	log_details := fmt.Sprintf("INDIGO new_hash_68 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
+	log.Info(log_details)
 
 	// Schedule all the unknown hashes for retrieval
 	for _, hash := range ann.Hashes {
@@ -515,7 +517,9 @@ func handleGetPooledTransactions66(backend Backend, msg Decoder, peer *Peer) err
 		hexHashes = append(hexHashes, hash.Hex())
 	}
 	// Log the received message details
-	indigo.Log("get_tx_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
+	// indigo.Log("get_tx_66", strconv.FormatInt(utcTime, 10), peer.id, strings.Join(hexHashes, "|"))
+	log_details := fmt.Sprintf("INDIGO get_tx_66 %v %v %v", utcTime, peer.id, strings.Join(hexHashes, "|"))
+	log.Info(log_details)
 
 	hashes, txs := answerGetPooledTransactions(backend, query.GetPooledTransactionsPacket, peer)
 	return peer.ReplyPooledTransactionsRLP(query.RequestId, hashes, txs)

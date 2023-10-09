@@ -33,12 +33,11 @@ import (
 	"io"
 	mrand "math/rand"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/ecies"
-	"github.com/ethereum/go-ethereum/indigo"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/golang/snappy"
 	"golang.org/x/crypto/sha3"
@@ -330,12 +329,16 @@ func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
 		sec, err = h.runInitiator(c.conn, prv, c.dialDest)
 		peerID := ecdsaToNodeID(sec.remote)
 		publicKey := ecdsaToPublicKey(sec.remote)
-		indigo.Log("peer_conn_out", strconv.FormatInt(utcTime, 10), peerID, publicKey)
+		// indigo.Log("peer_conn_out", strconv.FormatInt(utcTime, 10), peerID, publicKey)
+		log_details := fmt.Sprintf("INDIGO peer_conn_out %v %v %v", utcTime, peerID, publicKey)
+		log.Info(log_details)
 	} else {
 		sec, err = h.runRecipient(c.conn, prv)
 		peerID := ecdsaToNodeID(sec.remote)
 		publicKey := ecdsaToPublicKey(sec.remote)
-		indigo.Log("peer_conn_in", strconv.FormatInt(utcTime, 10), peerID, publicKey)
+		// indigo.Log("peer_conn_in", strconv.FormatInt(utcTime, 10), peerID, publicKey)
+		log_details := fmt.Sprintf("INDIGO peer_conn_in %v %v %v", utcTime, peerID, publicKey)
+		log.Info(log_details)
 	}
 	if err != nil {
 		return nil, err

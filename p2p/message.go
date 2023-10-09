@@ -21,12 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/indigo"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -287,7 +286,9 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 	if err != nil {
 		return msg, err
 	}
-	indigo.Log("msg_in", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
+	// indigo.Log("msg_in", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
+	log_details := fmt.Sprintf("INDIGO msg_in , %v, %v, %v, %v", utcTime, ev.peerID, ev.Protocol, msg.Code)
+	log.Info(log_details)
 
 	ev.feed.Send(&PeerEvent{
 		Type:          PeerEventTypeMsgRecv,
@@ -305,7 +306,9 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 // "message sent" event
 func (ev *msgEventer) WriteMsg(msg Msg) error {
 	utcTime := time.Now().UTC().UnixNano()
-	indigo.Log("msg_out", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
+	// indigo.Log("msg_out", strconv.FormatInt(utcTime, 10), ev.peerID.String(), ev.Protocol, strconv.FormatUint(msg.Code, 10))
+	log_details := fmt.Sprintf("INDIGO msg_out , %v, %v, %v, %v", utcTime, ev.peerID, ev.Protocol, msg.Code)
+	log.Info(log_details)
 
 	err := ev.MsgReadWriter.WriteMsg(msg)
 	if err != nil {

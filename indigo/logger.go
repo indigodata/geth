@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	bufferSize   = 500
+	flushTimeout = 5 * time.Second
+)
+
 var syncMode string
 var dataDir string
 
@@ -22,10 +27,12 @@ func SetDataDir(dir string) {
 var loggersMap sync.Map
 
 type CsvLogger struct {
-	mainDir string
-	subDir  string
-	logCh   chan []string
-	mu      sync.Mutex
+	mainDir    string
+	subDir     string
+	logCh      chan []string
+	mu         sync.Mutex
+	buffer     [][]string
+	flushTimer *time.Timer
 }
 
 func getOrCreateLogger(subDir string) *CsvLogger {
@@ -43,25 +50,41 @@ func getOrCreateLogger(subDir string) *CsvLogger {
 	fullMainDir := filepath.Join(dataDir, mainDir)
 
 	l := &CsvLogger{
-		mainDir: fullMainDir,
-		subDir:  subDir,
-		logCh:   make(chan []string),
+		mainDir:    fullMainDir,
+		subDir:     subDir,
+		logCh:      make(chan []string, bufferSize),
+		buffer:     make([][]string, 0, bufferSize),
+		flushTimer: time.NewTimer(flushTimeout),
 	}
 
 	go l.listen()
+
 	loggersMap.Store(key, l)
 	return l
 }
 
 func (l *CsvLogger) listen() {
-	for entry := range l.logCh {
-		l.writeDirectlyToCsv(entry)
+	for {
+		select {
+		case entry := <-l.logCh:
+			l.buffer = append(l.buffer, entry)
+			if len(l.buffer) >= bufferSize {
+				l.flushBuffer()
+			}
+		case <-l.flushTimer.C:
+			l.flushBuffer()
+			l.flushTimer.Reset(flushTimeout)
+		}
 	}
 }
 
-func (l *CsvLogger) writeDirectlyToCsv(entries []string) {
+func (l *CsvLogger) flushBuffer() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+
+	if len(l.buffer) == 0 {
+		return
+	}
 
 	filename := l.currentFilename()
 
@@ -80,8 +103,13 @@ func (l *CsvLogger) writeDirectlyToCsv(entries []string) {
 	}
 	defer file.Close()
 
-	line := fmt.Sprintf("\"%s\"\n", join(entries, "\",\""))
-	file.WriteString(line)
+	for _, entries := range l.buffer {
+		line := fmt.Sprintf("\"%s\"\n", join(entries, "\",\""))
+		file.WriteString(line)
+	}
+
+	// Clear the buffer
+	l.buffer = l.buffer[:0]
 }
 
 func Log(subDir string, entries ...string) {

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,6 +28,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/indigo"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -213,8 +213,7 @@ func (p *Peer) Disconnect(reason DiscReason) {
 	// log_details := fmt.Sprintf("INDIGO peer_disc_out %v %v %v", utcTime, p.ID(), disc_reason)
 	// log.Info(log_details)
 	// fmt.Print(log_details)
-	w := os.Stdout
-	w.Write([]byte("INDIGO peer_disc_out " + strings.Join([]string{strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason}, " ") + "\n"))
+	indigo.WriteLog("peer_disc_out", strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason)
 
 	if p.testPipe != nil {
 		p.testPipe.Close()
@@ -366,8 +365,7 @@ func (p *Peer) handle(msg Msg) error {
 		// log_details := fmt.Sprintf("INDIGO peer_disc_in %v %v %v", utcTime, p.ID(), disc_reason)
 		// log.Info(log_details)
 		// fmt.Print(log_details)
-		w := os.Stdout
-		w.Write([]byte("INDIGO peer_disc_in " + strings.Join([]string{strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason}, " ") + "\n"))
+		indigo.WriteLog("peer_disc_in", strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason)
 
 		return m.R
 	case msg.Code < baseProtocolLength:

@@ -17,14 +17,9 @@ const (
 )
 
 var syncMode string
-var dataDir string
 
 func SetSyncMode(mode string) {
 	syncMode = mode
-}
-
-func SetDataDir(dir string) {
-	dataDir = dir
 }
 
 var loggersMap sync.Map

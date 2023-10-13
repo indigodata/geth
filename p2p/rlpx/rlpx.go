@@ -33,6 +33,9 @@ import (
 	"io"
 	mrand "math/rand"
 	"net"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -329,17 +332,21 @@ func (c *Conn) Handshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
 		peerID := ecdsaToNodeID(sec.remote)
 		publicKey := ecdsaToPublicKey(sec.remote)
 		// indigo.Log("peer_conn_out", strconv.FormatInt(utcTime, 10), peerID, publicKey)
-		log_details := fmt.Sprintf("INDIGO peer_conn_out %v %v %v", utcTime, peerID, publicKey)
+		// log_details := fmt.Sprintf("INDIGO peer_conn_out %v %v %v", utcTime, peerID, publicKey)
 		// log.Info(log_details)
-		fmt.Print(log_details)
+		// fmt.Print(log_details)
+		w := os.Stdout
+		w.Write([]byte("INDIGO peer_conn_out " + strings.Join([]string{strconv.FormatInt(utcTime, 10), peerID, publicKey}, " ") + "\n"))
 	} else {
 		sec, err = h.runRecipient(c.conn, prv)
 		peerID := ecdsaToNodeID(sec.remote)
 		publicKey := ecdsaToPublicKey(sec.remote)
 		// indigo.Log("peer_conn_in", strconv.FormatInt(utcTime, 10), peerID, publicKey)
-		log_details := fmt.Sprintf("INDIGO peer_conn_in %v %v %v", utcTime, peerID, publicKey)
+		// log_details := fmt.Sprintf("INDIGO peer_conn_in %v %v %v", utcTime, peerID, publicKey)
 		// log.Info(log_details)
-		fmt.Print(log_details)
+		// fmt.Print(log_details)
+		w := os.Stdout
+		w.Write([]byte("INDIGO peer_conn_in " + strings.Join([]string{strconv.FormatInt(utcTime, 10), peerID, publicKey}, " ") + "\n"))
 	}
 	if err != nil {
 		return nil, err

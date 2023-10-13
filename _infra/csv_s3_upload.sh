@@ -9,12 +9,6 @@ fi
 node_id="$1"
 base_dir="$2"
 
-# Ensure the path is absolute
-if [[ ! "$base_dir" = /* ]]; then
-    echo "please provide absolute base_dir"
-    exit 1
-fi
-
 # S3 base path
 s3_base_path="s3://indigo-snowflake-staging/offchain/network_feed/$node_id"
 

@@ -24,6 +24,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,6 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/indigo"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -766,6 +769,7 @@ running:
 				// The handshakes are done and it passed all checks.
 				p := srv.launchPeer(c)
 				peers[c.node.ID()] = p
+
 				srv.log.Debug("Adding p2p peer", "peercount", len(peers), "id", p.ID(), "conn", c.flags, "addr", p.RemoteAddr(), "name", p.Name())
 				srv.dialsched.peerAdded(c)
 				if p.Inbound() {
@@ -935,6 +939,8 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *enode.Node) 
 		c.transport = srv.newTransport(fd, nil)
 	} else {
 		c.transport = srv.newTransport(fd, dialDest.Pubkey())
+		// fmt.Printf("INDIGO Caps; %v, ID: %v, Pubkey: %v, IP: %v, IP_Incomplete: %v, Record: %v, TCP_Port: %v \n", srv.ourHandshake.Name, dialDest.ID(), dialDest.Pubkey(), dialDest.IP(), dialDest.Incomplete(), dialDest.Record(), dialDest.TCP())
+		// fmt.Printf("INDIGO Peer: %v \n", srv.Peers())
 	}
 
 	err := srv.setupConn(c, flags, dialDest)
@@ -989,6 +995,23 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	if err != nil {
 		clog.Trace("Failed p2p handshake", "err", err)
 		return fmt.Errorf("%w: %v", errProtoHandshakeError, err)
+	} else {
+		utcTime := time.Now().UTC().UnixNano()
+		var builder strings.Builder
+
+		for i, cap := range phs.Caps {
+			if i > 0 {
+				builder.WriteString(",")
+			}
+			builder.WriteString(cap.String())
+		}
+
+		capString := builder.String()
+		builder.Reset() // Prepare the builder for the next use
+
+		peerMetadata := []string{hex.EncodeToString(phs.ID), strconv.FormatUint(phs.Version, 10), phs.Name, capString, c.fd.RemoteAddr().String()}
+		indigo.WriteLog("node_tracker", strconv.FormatInt(utcTime, 10), hex.EncodeToString((crypto.Keccak256(phs.ID))), strings.Join(peerMetadata, "|"))
+		// fmt.Printf("INDIGO PublicKey: %v, NodeID: %v Version: %v, Name: %v, Caps: %v, Listen_Port: %v, IP: %v \n", hex.EncodeToString(phs.ID), hex.EncodeToString((crypto.Keccak256(phs.ID))), phs.Version, phs.Name, capString, phs.ListenPort, c.fd.RemoteAddr())
 	}
 	if id := c.node.ID(); !bytes.Equal(crypto.Keccak256(phs.ID), id[:]) {
 		clog.Trace("Wrong devp2p handshake identity", "phsid", hex.EncodeToString(phs.ID))

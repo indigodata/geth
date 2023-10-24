@@ -33,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/indigo"
 	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/internal/flags"
@@ -341,6 +342,11 @@ func geth(ctx *cli.Context) error {
 	stack, backend := makeFullNode(ctx)
 	defer stack.Close()
 
+	// Set the syncmode for the indigo package
+	cfg := loadBaseConfig(ctx)
+	indigo.SetSyncMode(cfg.Eth.SyncMode.String())
+	indigo.SetDataDir(cfg.Node.DataDir)
+	fmt.Println("sync mode is ", cfg.Eth.SyncMode.String())
 	startNode(ctx, stack, backend, false)
 	stack.Wait()
 	return nil

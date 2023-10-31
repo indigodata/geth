@@ -1,0 +1,53 @@
+services:
+  geth:
+    build:
+      context: .
+      args:
+        GO_IMAGE: golang:1.19
+        GETH_REPO: https://<GITHUB_ACCESS_KEY>@github.com/indigodata/geth.git
+        GETH_BRANCH: indigo
+    volumes:
+      - <HOST_VOLUME_PATH>:/indigo
+    ports:
+      - 30304:30304/tcp
+      - 30304:30304/udp
+      - 8546:8546 # Geth RPC port
+      - 8552:8552 # Execution client port for teku
+    command: geth --syncmode=full --datadir=/indigo/ethereum --authrpc.jwtsecret=/indigo/ethereum/jwt.hex --authrpc.port=8552 --authrpc.addr=0.0.0.0 --authrpc.vhosts="*" --http.port=8546 --port=30304
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    deploy:
+      replicas: 1
+  teku:
+    environment:
+      - "JAVA_OPTS=-Xmx4g"
+    image: consensys/teku:23.9.0
+    command:
+      [ "--network=mainnet",
+        "--data-base-path=/indigo/teku/data",
+        "--initial-state=https://sync-mainnet.beaconcha.in/eth/v2/debug/beacon/states/finalized",
+        "--ee-endpoint=http://172.17.0.1:8552",
+        "--ee-jwt-secret-file=/indigo/ethereum/jwt.hex",
+        "--rest-api-enabled=true",
+        "--rest-api-host-allowlist='*'",
+        "--rest-api-interface=0.0.0.0",
+        "--rest-api-port=5052",
+        "--p2p-port=9001"
+      ]
+    volumes:
+      - <HOST_VOLUME_PATH>:/indigo
+    ports:
+      # Map the p2p port(9001) and REST API port(5052)
+      - "9001:9001/tcp"
+      - "9001:9001/udp"
+      - "5052:5052"
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    deploy:
+      replicas: 1

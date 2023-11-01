@@ -526,9 +526,9 @@ func (h *handler) unregisterPeer(id string) {
 	if err := h.peers.unregisterPeer(id); err != nil {
 		logger.Error("Ethereum peer removal failed", "err", err)
 	}
-	connectionDuration := common.PrettyDuration(mclock.Now() - peer.Peer.Created())
+	connectionDuration := time.Duration(mclock.Now() - peer.Peer.Created()).Nanoseconds()
 	utcTime := time.Now().UTC().UnixNano()
-	peerMetadata := []string{"eth", strconv.Itoa(len(h.peers.peers)), connectionDuration.String()}
+	peerMetadata := []string{"eth", strconv.Itoa(len(h.peers.peers)), strconv.FormatInt(connectionDuration, 10)}
 	indigo.WriteLog("peer_set_remove", strconv.FormatInt(utcTime, 10), peer.ID(), strings.Join(peerMetadata, "|"))
 }
 

@@ -123,6 +123,10 @@ type Peer struct {
 	testPipe *MsgPipeRW // for testing
 }
 
+func (p *Peer) Created() mclock.AbsTime {
+	return p.created
+}
+
 // NewPeer returns a peer for testing purposes.
 func NewPeer(id enode.ID, name string, caps []Cap) *Peer {
 	// Generate a fake set of local protocols to match as running caps. Almost

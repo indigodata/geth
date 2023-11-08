@@ -56,7 +56,7 @@ func (p *Peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 		})
 	}()
 	go func() {
-		errc <- p.readStatus(network, &status, genesis, forkFilter, td)
+		errc <- p.readStatus(network, &status, genesis, forkFilter, head)
 	}()
 	timeout := time.NewTimer(handshakeTimeout)
 	defer timeout.Stop()
@@ -83,7 +83,7 @@ func (p *Peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 }
 
 // readStatus reads the remote handshake message.
-func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.Hash, forkFilter forkid.Filter, td *big.Int) error {
+func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.Hash, forkFilter forkid.Filter, head common.Hash) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err
@@ -100,8 +100,8 @@ func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.H
 	}
 
 	utcTime := time.Now().UTC().UnixNano()
-	// (Network_ID, Protocol_Version, Genesis Block Hash, Head Block Hash, Total_Difficulty, Local_Total_Difficultly)
-	peerMetadata := []string{strconv.FormatUint(status.NetworkID, 10), strconv.FormatUint(uint64(status.ProtocolVersion), 10), status.Genesis.String(), status.Head.String(), status.TD.String(), td.String()}
+	// (Network_ID, Protocol_Version, Genesis Block Hash, Head Block Hash, Local Head Block Hash)
+	peerMetadata := []string{strconv.FormatUint(status.NetworkID, 10), strconv.FormatUint(uint64(status.ProtocolVersion), 10), status.Genesis.String(), status.Head.String(), head.String()}
 	indigo.WriteLog("handshake_eth", strconv.FormatInt(utcTime, 10), p.ID(), strings.Join(peerMetadata, "|"))
 
 	if status.NetworkID != network {

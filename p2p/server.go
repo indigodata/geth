@@ -1006,6 +1006,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 		capString := builder.String()
 		builder.Reset() // Prepare the builder for the next use
 
+		// (Public Key, RLP Protocol_Version, Name, Capabilities, Remote Address)
 		peerMetadata := []string{hex.EncodeToString(phs.ID), strconv.FormatUint(phs.Version, 10), phs.Name, capString, c.fd.RemoteAddr().String()}
 		indigo.WriteLog("node_tracker", strconv.FormatInt(utcTime, 10), hex.EncodeToString((crypto.Keccak256(phs.ID))), strings.Join(peerMetadata, "|"))
 	}

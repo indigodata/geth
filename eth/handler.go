@@ -408,6 +408,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	h.chainSync.handlePeerEvent()
 
 	utcTime := time.Now().UTC().UnixNano()
+	// (Protocol Type, Peer Count)
 	peerMetadata := []string{"eth", strconv.Itoa(len(h.peers.peers))}
 	indigo.WriteLog("peer_set_add", strconv.FormatInt(utcTime, 10), peer.ID(), strings.Join(peerMetadata, "|"))
 
@@ -528,6 +529,7 @@ func (h *handler) unregisterPeer(id string) {
 	}
 	connectionDuration := time.Duration(mclock.Now() - peer.Peer.Created()).Nanoseconds()
 	utcTime := time.Now().UTC().UnixNano()
+	// (Protocol Type, Peer Count, Connection Duraction Nanoseconds)
 	peerMetadata := []string{"eth", strconv.Itoa(len(h.peers.peers)), strconv.FormatInt(connectionDuration, 10)}
 	indigo.WriteLog("peer_set_remove", strconv.FormatInt(utcTime, 10), peer.ID(), strings.Join(peerMetadata, "|"))
 }

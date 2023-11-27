@@ -100,7 +100,7 @@ func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.H
 	}
 
 	utcTime := time.Now().UTC().UnixNano()
-	// (Network_ID, Protocol_Version, Genesis Block Hash, Head Block Hash, Local Head Block Hash)
+	// (Network_ID, ETH Protocol_Version, Genesis Block Hash, Head Block Hash, Local Head Block Hash)
 	peerMetadata := []string{strconv.FormatUint(status.NetworkID, 10), strconv.FormatUint(uint64(status.ProtocolVersion), 10), status.Genesis.String(), status.Head.String(), head.String()}
 	indigo.WriteLog("handshake_eth", strconv.FormatInt(utcTime, 10), p.ID(), strings.Join(peerMetadata, "|"))
 

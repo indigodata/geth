@@ -1,6 +1,6 @@
 REMOTE_HOST=ovh-london-1
 
-ssh  'bash -s' <<EOF
+ssh $REMOTE_HOST 'bash -s' <<EOF
     sudo mkdir /node-a
     # sudo mkdir /node-b # This is created by the ovh setup script to mount on the second nvme disk
     sudo chown -R ubuntu:ubuntu /node-a
@@ -34,15 +34,29 @@ ssh  'bash -s' <<EOF
         sudo usermod -aG docker ubuntu
 EOF
 
-# Start snapsync
+# Send files to remote host
 scp ./_infra/docker-compose.yml $REMOTE_HOST:/node-a/
 scp ./_infra/docker-compose-b.yml $REMOTE_HOST:/node-b/docker-compose.yml
 scp ./_infra/Dockerfile $REMOTE_HOST:/node-a/
 scp ./_infra/Dockerfile $REMOTE_HOST:/node-b/
+scp ./_infra/csv_s3_upload.sh $REMOTE_HOST:/home/ubuntu/
 
+# Start node-a with snapsync
 ssh $REMOTE_HOST
 cd /node-a
 docker-compose up -d teku geth-snapsync
+
+# Setup AWS CLI
+sudo apt install -y awscli
+aws configure set aws_access_key_id [aws_access_key_id]
+aws configure set aws_secret_access_key [aws_secret_access_key]
+aws configure set default.region us-east-2
+
+# Setup cron
+mkdir -p /home/ubuntu/logs/
+HOSTNAME=ovh-london-1
+(crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}a /node-a/ethereum/network_feed/ >> /home/ubuntu/logs/node_a_s3_upload.log 2>&1") | crontab -
+(crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}b /node-b/ethereum/network_feed/ >> /home/ubuntu/logs/node_b_s3_upload.log 2>&1") | crontab -
 
 #### WAIT FOR SNAPSYNC TO FINISH ####
 
@@ -61,17 +75,3 @@ cd /node-a
 docker-compose up -d teku geth-network-feed
 cd /node-b
 docker-compose up -d teku geth-network-feed
-
-# Setup AWS CLI
-  sudo apt install -y awscli
-  aws configure set aws_access_key_id [aws_access_key_id]
-  aws configure set aws_secret_access_key [aws_secret_access_key]
-  aws configure set default.region us-east-2
-
-  # Setup cron jobs
-  scp ./_infra/csv_s3_upload.sh $REMOTE_HOST:/home/ubuntu/
-  ssh $REMOTE_HOST <<EOF
-  mkdir -p /home/ubuntu/logs/
-  HOSTNAME=ovh-virginia-1
-  (crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}a /node-a/ethereum/network_feed/ >> /home/ubuntu/logs/node_a_s3_upload.log 2>&1") | crontab -
-  (crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}b /node-b/ethereum/network_feed/ >> /home/ubuntu/logs/node_b_s3_upload.log 2>&1") | crontab -

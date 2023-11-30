@@ -5,9 +5,10 @@ ARG GETH_REPO
 ARG GETH_BRANCH
 
 WORKDIR /indigo
-RUN git clone $GETH_REPO
+RUN git clone $GETH_REPO /indigo/geth
 
-WORKDIR ./geth
+WORKDIR /indigo/geth
 RUN git checkout $GETH_BRANCH
 RUN go install ./cmd/geth
-WORKDIR ..
+
+WORKDIR /indigo

@@ -32,6 +32,22 @@ ssh $REMOTE_HOST 'bash -s' <<EOF
 
       # Add user to docker group
         sudo usermod -aG docker ubuntu
+
+    # Configure Datadog
+    HOSTNAME=ovh-london-1
+    DD_API_KEY=<DD_API_KEY>
+    DD_HOSTNAME=${HOSTNAME} DD_AGENT_MAJOR_VERSION=7 DD_API_KEY=${DD_API_KEY} DD_SITE="us5.datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"
+
+    sudo sh -c 'echo \
+    "process_config:
+      process_collection:
+        enabled: true
+      container_collection:
+        enabled: true
+    " >> /etc/datadog-agent/datadog.yaml'
+
+    sudo systemctl restart datadog-agent
+
 EOF
 
 # Send files to remote host

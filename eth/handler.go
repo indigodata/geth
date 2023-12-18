@@ -137,9 +137,6 @@ type handler struct {
 
 // newHandler returns a handler for all Ethereum chain management protocol.
 func newHandler(config *handlerConfig) (*handler, error) {
-	utcTime := time.Now().UTC().UnixNano()
-	indigo.WriteLog("indigo_node_start", strconv.FormatInt(utcTime, 10), "UNUSED", "UNUSED")
-
 	// Create the protocol manager with the base fields
 	if config.EventMux == nil {
 		config.EventMux = new(event.TypeMux) // Nicety initialization for tests

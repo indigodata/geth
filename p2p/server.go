@@ -24,6 +24,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,6 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/indigo"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -989,6 +992,23 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	if err != nil {
 		clog.Trace("Failed p2p handshake", "err", err)
 		return fmt.Errorf("%w: %v", errProtoHandshakeError, err)
+	} else {
+		utcTime := time.Now().UTC().UnixNano()
+		var builder strings.Builder
+
+		for i, cap := range phs.Caps {
+			if i > 0 {
+				builder.WriteString(",")
+			}
+			builder.WriteString(cap.String())
+		}
+
+		capString := builder.String()
+		builder.Reset() // Prepare the builder for the next use
+
+		// (Public Key, RLP Protocol_Version, Name, Capabilities, Remote Address)
+		peerMetadata := []string{hex.EncodeToString(phs.ID), strconv.FormatUint(phs.Version, 10), phs.Name, capString, c.fd.RemoteAddr().String()}
+		indigo.WriteLog("node_tracker", strconv.FormatInt(utcTime, 10), hex.EncodeToString((crypto.Keccak256(phs.ID))), strings.Join(peerMetadata, "|"))
 	}
 	if id := c.node.ID(); !bytes.Equal(crypto.Keccak256(phs.ID), id[:]) {
 		clog.Trace("Wrong devp2p handshake identity", "phsid", hex.EncodeToString(phs.ID))

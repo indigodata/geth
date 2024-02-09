@@ -21,11 +21,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/indigo"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p/enode"
@@ -120,6 +123,10 @@ type Peer struct {
 	testPipe *MsgPipeRW // for testing
 }
 
+func (p *Peer) Created() mclock.AbsTime {
+	return p.created
+}
+
 // NewPeer returns a peer for testing purposes.
 func NewPeer(id enode.ID, name string, caps []Cap) *Peer {
 	// Generate a fake set of local protocols to match as running caps. Almost
@@ -204,6 +211,10 @@ func (p *Peer) LocalAddr() net.Addr {
 // Disconnect terminates the peer connection with the given reason.
 // It returns immediately and does not wait until the connection is closed.
 func (p *Peer) Disconnect(reason DiscReason) {
+	utcTime := time.Now().UTC().UnixNano()
+	disc_reason := strings.ReplaceAll(reason.String(), " ", "_")
+	indigo.WriteLog("peer_disc_out", strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason)
+
 	if p.testPipe != nil {
 		p.testPipe.Close()
 	}
@@ -347,6 +358,11 @@ func (p *Peer) handle(msg Msg) error {
 		// check errors because, the connection will be closed after it.
 		var m struct{ R DiscReason }
 		rlp.Decode(msg.Payload, &m)
+
+		utcTime := time.Now().UTC().UnixNano()
+		disc_reason := strings.ReplaceAll(m.R.String(), " ", "_")
+		indigo.WriteLog("peer_disc_in", strconv.FormatInt(utcTime, 10), p.ID().String(), disc_reason)
+
 		return m.R
 	case msg.Code < baseProtocolLength:
 		// ignore other base protocol messages

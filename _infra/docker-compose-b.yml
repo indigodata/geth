@@ -1,0 +1,94 @@
+version: '3'
+
+services:
+  geth-network-feed:
+    image: geth-network-feed:latest
+    volumes:
+      - /node-b:/indigo
+    ports:
+      - 30303:30303/tcp
+      - 30303:30303/udp
+      - 8545:8545 # Geth RPC port
+      - 8551:8551 # Execution client port for teku
+    command: [
+        "geth", 
+        "--syncmode=full", 
+        "--datadir=/indigo/ethereum", 
+        "--authrpc.jwtsecret=/indigo/ethereum/jwt.hex",
+        "--authrpc.port=8551", 
+        "--authrpc.addr=0.0.0.0", 
+        '--authrpc.vhosts="*"',
+        "--http.port=8545", 
+        "--port=30303",
+        "--maxpeers=100",
+    ]
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    deploy:
+      replicas: 1
+  geth-snapsync:
+    build:
+      context: .
+      args:
+        GO_IMAGE: golang:1.21
+        GETH_REPO: https://github.com/ethereum/go-ethereum.git
+        GETH_BRANCH: release/1.13
+    volumes:
+      - /node-b:/indigo
+    ports:
+      - 30303:30303/tcp
+      - 30303:30303/udp
+      - 8545:8545 # Geth RPC port
+      - 8551:8551 # Execution client port for teku
+    command: [
+        "geth",
+        "--syncmode=snap",
+        "--datadir=/indigo/ethereum",
+        "--authrpc.jwtsecret=/indigo/ethereum/jwt.hex",
+        "--authrpc.port=8551",
+        "--authrpc.addr=0.0.0.0",
+        '--authrpc.vhosts="*"',
+        "--http.port=8545",
+        "--port=30303",
+        "--maxpeers=100",
+    ]
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    deploy:
+      replicas: 1
+  teku:
+    environment:
+      - "JAVA_OPTS=-Xmx4g"
+    image: consensys/teku:23.9.0
+    command: [
+        "--network=mainnet",
+        "--data-base-path=/indigo/teku/data",
+        "--initial-state=https://sync-mainnet.beaconcha.in/eth/v2/debug/beacon/states/finalized",
+        "--ee-endpoint=http://172.17.0.1:8551",
+        "--ee-jwt-secret-file=/indigo/ethereum/jwt.hex",
+        "--rest-api-enabled=true",
+        "--rest-api-host-allowlist='*'",
+        "--rest-api-interface=0.0.0.0",
+        "--rest-api-port=5051",
+        "--p2p-port=9000"
+      ]
+    volumes:
+      - /node-b:/indigo
+    ports:
+      # Map the p2p port(9000) and REST API port(5051)
+      - "9000:9000/tcp"
+      - "9000:9000/udp"
+      - "5051:5051"
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    deploy:
+      replicas: 1

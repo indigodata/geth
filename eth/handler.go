@@ -20,11 +20,14 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/core"
@@ -38,6 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/indigo"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p"
@@ -394,6 +398,11 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	}
 	h.chainSync.handlePeerEvent()
 
+	utcTime := time.Now().UTC().UnixNano()
+	// (Protocol Type, Peer Count)
+	peerMetadata := []string{"eth", strconv.Itoa(len(h.peers.peers))}
+	indigo.WriteLog("peer_set_add", strconv.FormatInt(utcTime, 10), peer.ID(), strings.Join(peerMetadata, "|"))
+
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
 	h.syncTransactions(peer)
@@ -509,6 +518,11 @@ func (h *handler) unregisterPeer(id string) {
 	if err := h.peers.unregisterPeer(id); err != nil {
 		logger.Error("Ethereum peer removal failed", "err", err)
 	}
+	connectionDuration := time.Duration(mclock.Now() - peer.Peer.Created()).Nanoseconds()
+	utcTime := time.Now().UTC().UnixNano()
+	// (Protocol Type, Peer Count, Connection Duraction Nanoseconds)
+	peerMetadata := []string{"eth", strconv.Itoa(len(h.peers.peers)), strconv.FormatInt(connectionDuration, 10)}
+	indigo.WriteLog("peer_set_remove", strconv.FormatInt(utcTime, 10), peer.ID(), strings.Join(peerMetadata, "|"))
 }
 
 func (h *handler) Start(maxPeers int) {

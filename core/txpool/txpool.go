@@ -105,6 +105,9 @@ func New(gasTip *big.Int, chain BlockChain, subpools []SubPool) (*TxPool, error)
 			return nil, err
 		}
 	}
+
+	pool.DeserializeTransactionsFromFile()
+
 	go pool.loop(head, chain)
 	return pool, nil
 }

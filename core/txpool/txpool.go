@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -106,7 +107,12 @@ func New(gasTip *big.Int, chain BlockChain, subpools []SubPool) (*TxPool, error)
 		}
 	}
 
-	pool.DeserializeTransactionsFromFile()
+	if fileInfo, err := os.Stat(dataDir); err == nil {
+		// Check if the file was modified in the last 5 minutes
+		if time.Since(fileInfo.ModTime()).Minutes() <= 5 {
+			pool.DeserializeTransactionsFromFile(dataDir)
+		}
+	}
 
 	go pool.loop(head, chain)
 	return pool, nil
@@ -160,7 +166,7 @@ func (p *TxPool) reserver(id int, subpool SubPool) AddressReserver {
 
 // Close terminates the transaction pool and all its subpools.
 func (p *TxPool) Close() error {
-	p.SerializeTransactionsToFile()
+	p.SerializeTransactionsToFile(dataDir)
 
 	var errs []error
 
@@ -488,6 +494,12 @@ func (p *TxPool) Sync() error {
 	}
 }
 
+var dataDir string
+
+func SetDataDir(dir string) {
+	dataDir = dir
+}
+
 func BasePath() string {
 	_, b, _, _ := runtime.Caller(1)
 	return filepath.Dir(b)
@@ -498,10 +510,8 @@ type mempoolSnapshot struct {
 	Queued  []*types.Transaction // Transactions waiting for future nonces
 }
 
-func (p *TxPool) SerializeTransactionsToFile() error {
-	basepath := BasePath()
-	snapshotPath := basepath + "/" + "mempool_snapshot_bin"
-	file, err := os.Create(snapshotPath)
+func (p *TxPool) SerializeTransactionsToFile(filePath string) error {
+	file, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
@@ -543,10 +553,8 @@ func (p *TxPool) SerializeTransactionsToFile() error {
 	return nil
 }
 
-func (p *TxPool) DeserializeTransactionsFromFile() ([]*types.Transaction, []error) {
-	basepath := BasePath()
-	snapshotPath := basepath + "/" + "mempool_snapshot_bin"
-	file, err := os.Open(snapshotPath)
+func (p *TxPool) DeserializeTransactionsFromFile(filePath string) ([]*types.Transaction, []error) {
+	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, []error{err}
 	}

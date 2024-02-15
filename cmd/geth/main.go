@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console/prompt"
+	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -347,6 +348,8 @@ func geth(ctx *cli.Context) error {
 	indigo.SetDataDir(cfg.Node.DataDir)
 	utcTime := time.Now().UTC().UnixNano()
 	indigo.WriteLog("indigo_node_start", strconv.FormatInt(utcTime, 10), "UNUSED", "UNUSED")
+
+	txpool.SetDataDir(cfg.Node.DataDir)
 
 	fmt.Println("sync mode is ", cfg.Eth.SyncMode.String())
 	startNode(ctx, stack, backend, false)

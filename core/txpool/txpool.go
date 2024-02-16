@@ -107,10 +107,11 @@ func New(gasTip *big.Int, chain BlockChain, subpools []SubPool) (*TxPool, error)
 		}
 	}
 
-	if fileInfo, err := os.Stat(dataDir); err == nil {
+	snapshotPath := fmt.Sprintf("%s/mempool_snapshot/snapshot_bin", dataDir)
+	if fileInfo, err := os.Stat(snapshotPath); err == nil {
 		// Check if the file was modified in the last 5 minutes
 		if time.Since(fileInfo.ModTime()).Minutes() <= 5 {
-			pool.DeserializeTransactionsFromFile(dataDir)
+			pool.DeserializeTransactionsFromFile(snapshotPath)
 		}
 	}
 
@@ -166,7 +167,8 @@ func (p *TxPool) reserver(id int, subpool SubPool) AddressReserver {
 
 // Close terminates the transaction pool and all its subpools.
 func (p *TxPool) Close() error {
-	p.SerializeTransactionsToFile(dataDir)
+	snapshotPath := fmt.Sprintf("%s/mempool_snapshot/snapshot_bin", dataDir)
+	p.SerializeTransactionsToFile(snapshotPath)
 
 	var errs []error
 

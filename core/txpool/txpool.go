@@ -23,8 +23,6 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
@@ -500,16 +498,6 @@ var dataDir string
 
 func SetDataDir(dir string) {
 	dataDir = dir
-}
-
-func BasePath() string {
-	_, b, _, _ := runtime.Caller(1)
-	return filepath.Dir(b)
-}
-
-type mempoolSnapshot struct {
-	Pending []*types.Transaction // Transactions ready to be processed
-	Queued  []*types.Transaction // Transactions waiting for future nonces
 }
 
 func (p *TxPool) SerializeTransactionsToFile(filePath string) error {

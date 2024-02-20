@@ -165,7 +165,7 @@ func (p *TxPool) reserver(id int, subpool SubPool) AddressReserver {
 
 // Close terminates the transaction pool and all its subpools.
 func (p *TxPool) Close() error {
-	snapshotPath := fmt.Sprintf("%s/mempool_snapshot/snapshot_bin", dataDir)
+	snapshotPath := fmt.Sprintf("%s/mempool_snapshot.bin", dataDir)
 	p.SerializeTransactionsToFile(snapshotPath)
 
 	var errs []error

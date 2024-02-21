@@ -1,6 +1,6 @@
 REMOTE_HOST=ovh-london-1
 
-ssh $REMOTE_HOST 'bash -s' <<EOF
+ssh $REMOTE_HOST 'bash -s' <<EOF > "${REMOTE_HOST}_setup_log.txt" 2>&1
     sudo mkdir /node-a
     # sudo mkdir /node-b # This is created by the ovh setup script to mount on the second nvme disk
     sudo chown -R ubuntu:ubuntu /node-a
@@ -46,9 +46,12 @@ ssh $REMOTE_HOST 'bash -s' <<EOF
         enabled: true
     " >> /etc/datadog-agent/datadog.yaml'
 
+    sudo usermod -aG docker dd-agent
     sudo systemctl restart datadog-agent
 
 EOF
+
+wait
 
 # Send files to remote host
 scp ./_infra/docker-compose.yml $REMOTE_HOST:/node-a/
@@ -77,9 +80,9 @@ HOSTNAME=ovh-london-1
   (crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}a /node-a/ethereum/network_feed/ >> /home/ubuntu/logs/node_a_s3_upload.log 2>&1") | crontab -
   (crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}b /node-b/ethereum/network_feed/ >> /home/ubuntu/logs/node_b_s3_upload.log 2>&1") | crontab -
 
-  # Cycle peers every 2 days
-  (crontab -l 2>/dev/null; echo  "0 0 1-31/2 * * sh /home/ubuntu/cycle_peers.sh /node-a >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Odd days
-  (crontab -l 2>/dev/null; echo  "0 0 2-30/2 * * sh /home/ubuntu/cycle_peers.sh /node-b >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Even days
+  # Cycle peers every 12 hours
+  (crontab -l 2>/dev/null; echo  "0 <0,12 local> * * * sh /home/ubuntu/cycle_peers.sh /node-a >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Odd days
+  (crontab -l 2>/dev/null; echo  "0 <6,18 local> * * * sh /home/ubuntu/cycle_peers.sh /node-b >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Even days
 
 #### WAIT FOR SNAPSYNC TO FINISH ####
 
@@ -89,7 +92,7 @@ docker-compose down
 nohup sudo cp -r /node-a/ethereum/geth /node-b/ethereum/ &
 
 # Build network feed image #
-docker build --build-arg GO_IMAGE=golang:1.19 --build-arg GETH_REPO=https://${GITHUB_TOKEN}@github.com/indigodata/geth.git --build-arg GETH_BRANCH=indigo -t geth-network-feed:latest .
+docker build --build-arg GO_IMAGE=golang:1.22 --build-arg GETH_REPO=https://${GITHUB_TOKEN}@github.com/indigodata/geth.git --build-arg GETH_BRANCH=indigo -t geth-network-feed:latest .
 
 #### WAIT FOR COPY TO FINISH ####
 

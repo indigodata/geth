@@ -17,10 +17,14 @@
 package txpool
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -100,6 +104,15 @@ func New(gasTip *big.Int, chain BlockChain, subpools []SubPool) (*TxPool, error)
 			return nil, err
 		}
 	}
+
+	snapshotPath := fmt.Sprintf("%s/mempool_snapshot.bin", dataDir)
+	if fileInfo, err := os.Stat(snapshotPath); err == nil {
+		// Check if the file was modified in the last 5 minutes
+		if time.Since(fileInfo.ModTime()).Minutes() <= 5 {
+			pool.DeserializeTransactionsFromFile(snapshotPath)
+		}
+	}
+
 	go pool.loop(head, chain)
 	return pool, nil
 }
@@ -152,6 +165,9 @@ func (p *TxPool) reserver(id int, subpool SubPool) AddressReserver {
 
 // Close terminates the transaction pool and all its subpools.
 func (p *TxPool) Close() error {
+	snapshotPath := fmt.Sprintf("%s/mempool_snapshot.bin", dataDir)
+	p.SerializeTransactionsToFile(snapshotPath)
+
 	var errs []error
 
 	// Terminate the reset loop and wait for it to finish
@@ -476,4 +492,96 @@ func (p *TxPool) Sync() error {
 	case <-p.term:
 		return errors.New("pool already terminated")
 	}
+}
+
+var dataDir string
+
+func SetDataDir(dir string) {
+	dataDir = dir
+}
+
+func (p *TxPool) SerializeTransactionsToFile(filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	runnable, blocked := p.Content()
+
+	// Helper function to write transactions to file
+	writeTxs := func(txs map[common.Address][]*types.Transaction) error {
+		for _, txList := range txs {
+			for _, tx := range txList {
+				data, err := tx.MarshalBinary()
+				if err != nil {
+					return err
+				}
+				// Write the length of the serialized transaction data first
+				if err := binary.Write(file, binary.BigEndian, int64(len(data))); err != nil {
+					return err
+				}
+				// Write the serialized transaction data
+				if _, err := file.Write(data); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	// Write runnable transactions
+	if err := writeTxs(runnable); err != nil {
+		return err
+	}
+
+	// Write blocked transactions
+	if err := writeTxs(blocked); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *TxPool) DeserializeTransactionsFromFile(filePath string) ([]*types.Transaction, []error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, []error{err}
+	}
+	defer file.Close()
+
+	var transactions []*types.Transaction
+	var local = true
+	var sync = false
+
+	for {
+		// Read the length of the serialized transaction data
+		var size int64
+		if err := binary.Read(file, binary.BigEndian, &size); err != nil {
+			if err == io.EOF {
+				break // End of file reached
+			}
+			return nil, []error{err}
+		}
+
+		// Read the serialized transaction data
+		data := make([]byte, size)
+		if _, err := file.Read(data); err != nil {
+			return nil, []error{err}
+		}
+
+		// Deserialize the transaction
+		tx := new(types.Transaction)
+		if err := tx.UnmarshalBinary(data); err != nil {
+			return nil, []error{err}
+		}
+
+		transactions = append(transactions, tx)
+	}
+
+	// Add deserialized transactions to the mempool
+	errs := p.Add(transactions, local, sync)
+	print(errs)
+
+	return transactions, errs
 }

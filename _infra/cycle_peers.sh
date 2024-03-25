@@ -15,5 +15,5 @@ NODE_REGION=$3
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 bash ${SCRIPT_DIR}/set_boot_nodes.sh $NODE_REGION $DATA_DIR
 
-# cd $NODE_DIR
-# docker-compose restart teku geth-network-feed
+cd $NODE_DIR
+docker-compose restart teku geth-network-feed

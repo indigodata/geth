@@ -21,6 +21,7 @@ services:
         "--http.port=8545", 
         "--port=30303",
         "--maxpeers=100",
+        "--config=/indigo/ethereum/geth-config.toml",
     ]
     logging:
       driver: json-file

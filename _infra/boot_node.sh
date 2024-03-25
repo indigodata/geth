@@ -21,7 +21,6 @@ CONFIG_FILE="./_infra/geth-config.toml"
 printf "[Node.P2P]\nBootstrapNodes = [\n]\nStaticNodes = []\nTrustedNodes = []" > "$CONFIG_FILE"
 
 # Count the number of eligible lines
-# ELIGIBLE_LINES=$(awk -F, '$1 == "Africa"' ./_infra/boot_node.csv | wc -l)
 ELIGIBLE_LINES=$(awk -v region="$NODE_REGION" -F, '$1 == region' ./_infra/boot_node.csv | wc -l)
 
 # Generate random line numbers and write to a temp file

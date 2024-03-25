@@ -10,7 +10,7 @@ NODE_REGION=$1
 DATA_DIR=$2
 
 # Step 1: Download the file from S3
-aws s3 cp s3://indigo-snowflake-staging/offchain/export/boot_node/boot_node.csv.gz ./_infra/
+aws s3 cp s3://indigo-snowflake-staging/offchain/export/boot_node/boot_node.csv.gz ${DATA_DIR}/
 
 # Step 2: Decompress the file
 yes n | gzip -d ${DATA_DIR}/boot_node.csv.gz
@@ -22,7 +22,7 @@ CONFIG_FILE="${DATA_DIR}/geth-config.toml"
 printf "[Node.P2P]\nBootstrapNodes = [\n]\nStaticNodes = []\nTrustedNodes = []" > "$CONFIG_FILE"
 
 # Count the number of eligible lines
-ELIGIBLE_LINES=$(awk -v region="$NODE_REGION" -F, '$1 == region' ./_infra/boot_node.csv | wc -l)
+ELIGIBLE_LINES=$(awk -v region="$NODE_REGION" -F, '$1 == region' ${DATA_DIR}/boot_node.csv | wc -l)
 
 # Generate random line numbers and write to a temp file
 RANDOM_LINES_FILE=$(mktemp)
@@ -35,7 +35,7 @@ awk -v max="$ELIGIBLE_LINES" 'BEGIN {
 }' | sort -nu > "$RANDOM_LINES_FILE"
 
 # Extract the selected lines based on random line numbers
-SAMPLED_RECORDS=$(awk -v region="$NODE_REGION" -F, 'NR == FNR { lines[$1]; next } $1 == region && FNR in lines { print "  \"enode://" $2 "\"" }' "$RANDOM_LINES_FILE" ./_infra/boot_node.csv | paste -sd, -)
+SAMPLED_RECORDS=$(awk -v region="$NODE_REGION" -F, 'NR == FNR { lines[$1]; next } $1 == region && FNR in lines { print "  \"enode://" $2 "\"" }' "$RANDOM_LINES_FILE" ${DATA_DIR}/boot_node.csv | paste -sd, -)
 
 # Cleanup the temporary random lines file
 rm "$RANDOM_LINES_FILE"
@@ -59,6 +59,6 @@ awk -v rs="$SAMPLED_RECORDS" '
 ' "${CONFIG_FILE}.bak" > "$CONFIG_FILE"
 
 # Clean up the downloaded and decompressed files
-rm ./_infra/boot_node.csv
+rm ${DATA_DIR}/boot_node.csv
 
 echo "Config file updated."

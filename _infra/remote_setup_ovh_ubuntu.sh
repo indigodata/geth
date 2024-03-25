@@ -60,6 +60,7 @@ scp ./_infra/Dockerfile $REMOTE_HOST:/node-a/
 scp ./_infra/Dockerfile $REMOTE_HOST:/node-b/
 scp ./_infra/csv_s3_upload.sh $REMOTE_HOST:/home/ubuntu/
 scp ./_infra/cycle_peers.sh $REMOTE_HOST:/home/ubuntu/
+scp ./_infra/set_boot_nodes.sh $REMOTE_HOST:/home/ubuntu/
 
 # Start node-a with snapsync
 ssh $REMOTE_HOST
@@ -75,14 +76,15 @@ aws configure set default.region us-east-2
 # Setup cron
 mkdir -p /home/ubuntu/logs/
 HOSTNAME=ovh-london-1
+HOSTREGION=Europe
 
   # Upload CSVs to S3 every hour
   (crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}a /node-a/ethereum/network_feed/ >> /home/ubuntu/logs/node_a_s3_upload.log 2>&1") | crontab -
   (crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}b /node-b/ethereum/network_feed/ >> /home/ubuntu/logs/node_b_s3_upload.log 2>&1") | crontab -
 
   # Cycle peers every 12 hours
-  (crontab -l 2>/dev/null; echo  "0 <0,12 local> * * * sh /home/ubuntu/cycle_peers.sh /node-a >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Odd days
-  (crontab -l 2>/dev/null; echo  "0 <6,18 local> * * * sh /home/ubuntu/cycle_peers.sh /node-b >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Even days
+  (crontab -l 2>/dev/null; echo  "0 <0,12 local> * * * sh /home/ubuntu/cycle_peers.sh /node-a /node-a/ethereum ${HOSTREGION} >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Odd days
+  (crontab -l 2>/dev/null; echo  "0 <6,18 local> * * * sh /home/ubuntu/cycle_peers.sh /node-b /node-a/ethereum ${HOSTREGION} >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Even days
 
 #### WAIT FOR SNAPSYNC TO FINISH ####
 

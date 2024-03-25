@@ -1,21 +1,22 @@
 #!/bin/bash
 
 # Check for required arguments
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <node_region>"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <node_region> <data_dir>"
     exit 1
 fi
 
 NODE_REGION=$1
+DATA_DIR=$2
 
 # Step 1: Download the file from S3
 aws s3 cp s3://indigo-snowflake-staging/offchain/export/boot_node/boot_node.csv.gz ./_infra/
 
 # Step 2: Decompress the file
-yes n | gzip -d ./_infra/boot_node.csv.gz
+yes n | gzip -d ${DATA_DIR}/boot_node.csv.gz
 
 # Prepare the configuration file path
-CONFIG_FILE="./_infra/geth-config.toml"
+CONFIG_FILE="${DATA_DIR}/geth-config.toml"
 
 # Overwrite the file with a basic structure
 printf "[Node.P2P]\nBootstrapNodes = [\n]\nStaticNodes = []\nTrustedNodes = []" > "$CONFIG_FILE"

@@ -43,10 +43,18 @@ cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
 # Replace or append BootstrapNodes in the config file
 awk -v rs="$SAMPLED_RECORDS" '
-    BEGIN { skip = 0 }
-    /BootstrapNodes = \[/ {
+    BEGIN {
+        # Split the SAMPLED_RECORDS into an array elements, using comma as delimiter
+        n = split(rs, elements, ",");
+    }
+    /BootstrapNodes = \[/ || /TrustedNodes = \[/ {
         print;
-        print rs;
+        # Loop through the elements array and print each element on a new line
+        for (i = 1; i <= n; i++) {
+            # Trim leading and trailing whitespace
+            gsub(/^ *| *$/, "", elements[i]);
+            print "  " elements[i] (i < n ? "," : "");
+        }
         print "]";
         skip = 1;
         next;

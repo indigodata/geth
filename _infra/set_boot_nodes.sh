@@ -19,23 +19,21 @@ yes n | gzip -d ${DATA_DIR}/boot_node.csv.gz
 CONFIG_FILE="${DATA_DIR}/geth-config.toml"
 
 # Overwrite the file with a basic structure
-printf "[Node.P2P]\nBootstrapNodes = [\n]\nStaticNodes = []\nTrustedNodes = []" > "$CONFIG_FILE"
+printf "[Node.P2P]\nBootstrapNodes = [\n]\nStaticNodes = []\nTrustedNodes = [\n]" > "$CONFIG_FILE"
 
 # Count the number of eligible lines
 ELIGIBLE_LINES=$(awk -v region="$NODE_REGION" -F, '$1 == region' ${DATA_DIR}/boot_node.csv | wc -l)
 
-# Generate random line numbers and write to a temp file
-RANDOM_LINES_FILE=$(mktemp)
-awk -v max="$ELIGIBLE_LINES" 'BEGIN { 
-    srand(); 
-    for (i = 0; i < 50; i++) { 
-        n = int(rand() * max) + 1; 
-        print n 
-    }
-}' | sort -nu > "$RANDOM_LINES_FILE"
+# Temporary file to hold lines matching $NODE_REGION
+MATCHING_LINES_FILE=$(mktemp)
 
-# Extract the selected lines based on random line numbers
-SAMPLED_RECORDS=$(awk -v region="$NODE_REGION" -F, 'NR == FNR { lines[$1]; next } $1 == region && FNR in lines { print "  \"enode://" $2 "\"" }' "$RANDOM_LINES_FILE" ${DATA_DIR}/boot_node.csv | paste -sd, -)
+# Filter lines by $NODE_REGION and write them to a temporary file
+awk -v region="$NODE_REGION" -F, '$1 == region { print "  \"enode://" $2 "\"" }' ${DATA_DIR}/boot_node.csv > "$MATCHING_LINES_FILE"
+
+# Count the number of eligible lines
+ELIGIBLE_LINES=$(wc -l < "$MATCHING_LINES_FILE")
+
+SAMPLED_RECORDS=$(awk -v max="$ELIGIBLE_LINES" 'BEGIN { srand(); while(length(array) < 50 && length(array) < max) { n = int(rand() * max) + 1; if (!(n in array)) { array[n]; print n } } }' | sort -nu | awk 'NR == FNR { lines[$1]; next } FNR in lines { print }' - "$MATCHING_LINES_FILE" | paste -sd, -)
 
 # Cleanup the temporary random lines file
 rm "$RANDOM_LINES_FILE"

@@ -16,4 +16,4 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 bash ${SCRIPT_DIR}/set_boot_nodes.sh $NODE_REGION $DATA_DIR
 
 cd $NODE_DIR
-docker-compose restart teku geth-network-feed
+docker-compose restart --timeout=300 teku geth-network-feed

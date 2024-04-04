@@ -2,7 +2,7 @@
 
 # Check for required arguments
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <node_region> <data_dir>"
+    echo "Usage: $0 <node_region[, node_region_2]> <data_dir>"
     exit 1
 fi
 
@@ -27,8 +27,19 @@ ELIGIBLE_LINES=$(awk -v region="$NODE_REGION" -F, '$1 == region' ${DATA_DIR}/boo
 # Temporary file to hold lines matching $NODE_REGION
 MATCHING_LINES_FILE=$(mktemp)
 
-# Filter lines by $NODE_REGION and write them to a temporary file
-awk -v region="$NODE_REGION" -F, '$1 == region { print "  \"enode://" $2 "\"" }' ${DATA_DIR}/boot_node.csv > "$MATCHING_LINES_FILE"
+# Filter lines by $NODE_REGION (which may contain multiple regions) and write them to a temporary file
+awk -v region="$NODE_REGION" -F, 'BEGIN {
+    n = split(region, regions, ",");
+    for (i = 1; i <= n; i++) gsub(/^ *| *$/, "", regions[i]); # Trim whitespace from each region
+}
+{
+    for (i in regions) {
+        if ($1 == regions[i]) {
+            print "  \"enode://" $2 "\"";
+            next;
+        }
+    }
+}' ${DATA_DIR}/boot_node.csv > "$MATCHING_LINES_FILE"
 
 # Count the number of eligible lines
 ELIGIBLE_LINES=$(wc -l < "$MATCHING_LINES_FILE")

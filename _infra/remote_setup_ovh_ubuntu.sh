@@ -83,8 +83,8 @@ HOSTREGION=Europe
   (crontab -l 2>/dev/null; echo  "1 * * * * sh /home/ubuntu/csv_s3_upload.sh ${HOSTNAME}b /node-b/ethereum/network_feed/ >> /home/ubuntu/logs/node_b_s3_upload.log 2>&1") | crontab -
 
   # Cycle peers every 12 hours
-  (crontab -l 2>/dev/null; echo  "0 <0,12 local> * * * sh /home/ubuntu/cycle_peers.sh /node-a /node-a/ethereum ${HOSTREGION} >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Odd days
-  (crontab -l 2>/dev/null; echo  "0 <6,18 local> * * * sh /home/ubuntu/cycle_peers.sh /node-b /node-a/ethereum ${HOSTREGION} >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Even days
+  (crontab -l 2>/dev/null; echo  "0 <0,12 local> * * * bash /home/ubuntu/cycle_peers.sh /node-a /node-a/ethereum ${HOSTREGION} >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Odd days
+  (crontab -l 2>/dev/null; echo  "0 <6,18 local> * * * bash /home/ubuntu/cycle_peers.sh /node-b /node-a/ethereum ${HOSTREGION} >> /home/ubuntu/logs/cycle_peers.log 2>&1") | crontab - # Even days
 
 #### WAIT FOR SNAPSYNC TO FINISH ####
 

@@ -29,8 +29,11 @@ MATCHING_LINES_FILE=$(mktemp)
 
 # Filter lines by $NODE_REGION (which may contain multiple regions) and write them to a temporary file
 awk -v region="$NODE_REGION" -F, 'BEGIN {
-    n = split(region, regions, ",");
-    for (i = 1; i <= n; i++) gsub(/^ *| *$/, "", regions[i]); # Trim whitespace from each region
+    split(region, regions, ",");
+    for (i in regions) {
+        # Remove potential leading and trailing spaces in each region name
+        gsub(/^ *| *$/, "", regions[i]);
+    }
 }
 {
     for (i in regions) {
@@ -44,10 +47,7 @@ awk -v region="$NODE_REGION" -F, 'BEGIN {
 # Count the number of eligible lines
 ELIGIBLE_LINES=$(wc -l < "$MATCHING_LINES_FILE")
 
-SAMPLED_RECORDS=$(awk -v max="$ELIGIBLE_LINES" 'BEGIN { srand(); while(length(array) < 50 && length(array) < max) { n = int(rand() * max) + 1; if (!(n in array)) { array[n]; print n } } }' | sort -nu | awk 'NR == FNR { lines[$1]; next } FNR in lines { print }' - "$MATCHING_LINES_FILE" | paste -sd, -)
-
-# Cleanup the temporary random lines file
-rm "$RANDOM_LINES_FILE"
+SAMPLED_RECORDS=$(shuf -n 50 "$MATCHING_LINES_FILE" | sort -u | paste -sd, -)
 
 # Backup existing config file
 cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"

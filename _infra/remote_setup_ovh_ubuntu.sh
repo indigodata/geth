@@ -60,7 +60,7 @@ scp ./_infra/Dockerfile $REMOTE_HOST:/node-a/
 scp ./_infra/Dockerfile $REMOTE_HOST:/node-b/
 scp ./_infra/csv_s3_upload.sh $REMOTE_HOST:/home/ubuntu/
 scp ./_infra/cycle_peers.sh $REMOTE_HOST:/home/ubuntu/
-scp ./_infra/set_boot_nodes.sh $REMOTE_HOST:/home/ubuntu/
+scp ./_infra/set_undersampled_peers.sh $REMOTE_HOST:/home/ubuntu/
 
 # Start node-a with snapsync
 ssh $REMOTE_HOST

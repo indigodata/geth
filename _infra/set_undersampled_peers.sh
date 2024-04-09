@@ -10,10 +10,10 @@ NODE_REGION=$1
 DATA_DIR=$2
 
 # Step 1: Download the file from S3
-aws s3 cp s3://indigo-snowflake-staging/offchain/export/boot_node/boot_node.csv.gz ${DATA_DIR}/
+aws s3 cp s3://indigo-snowflake-staging/offchain/export/undersampled_peers/undersampled_peers.csv.gz ${DATA_DIR}/
 
 # Step 2: Decompress the file
-yes n | gzip -d ${DATA_DIR}/boot_node.csv.gz
+yes n | gzip -d ${DATA_DIR}/undersampled_peers.csv.gz
 
 # Prepare the configuration file path
 CONFIG_FILE="${DATA_DIR}/geth-config.toml"
@@ -22,7 +22,7 @@ CONFIG_FILE="${DATA_DIR}/geth-config.toml"
 printf "[Node.P2P]\nBootstrapNodes = [\n]\nStaticNodes = []\nTrustedNodes = [\n]" > "$CONFIG_FILE"
 
 # Count the number of eligible lines
-ELIGIBLE_LINES=$(awk -v region="$NODE_REGION" -F, '$1 == region' ${DATA_DIR}/boot_node.csv | wc -l)
+ELIGIBLE_LINES=$(awk -v region="$NODE_REGION" -F, '$1 == region' ${DATA_DIR}/undersampled_peers.csv | wc -l)
 
 # Temporary file to hold lines matching $NODE_REGION
 MATCHING_LINES_FILE=$(mktemp)
@@ -42,7 +42,7 @@ awk -v region="$NODE_REGION" -F, 'BEGIN {
             next;
         }
     }
-}' ${DATA_DIR}/boot_node.csv > "$MATCHING_LINES_FILE"
+}' ${DATA_DIR}/undersampled_peers.csv > "$MATCHING_LINES_FILE"
 
 # Count the number of eligible lines
 ELIGIBLE_LINES=$(wc -l < "$MATCHING_LINES_FILE")
@@ -76,6 +76,6 @@ awk -v rs="$SAMPLED_RECORDS" '
 ' "${CONFIG_FILE}.bak" > "$CONFIG_FILE"
 
 # Clean up the downloaded and decompressed files
-rm ${DATA_DIR}/boot_node.csv
+rm ${DATA_DIR}/undersampled_peers.csv
 
 echo "Config file updated."

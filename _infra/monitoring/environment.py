@@ -7,6 +7,8 @@ config = {
 }
 
 EMAIL_FROM = config.get('EMAIL_FROM')
+EMAIL_TO_1 = config.get('EMAIL_TO_1')
+EMAIL_TO_2 = config.get('EMAIL_TO_2')
 EMAIL_PASSWORD = config.get('EMAIL_PASSWORD')
 
 SNOWFLAKE_CONFIG = {

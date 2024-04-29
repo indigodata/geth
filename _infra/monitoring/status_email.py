@@ -1,12 +1,14 @@
 import os
 import smtplib
 
-from typing import List
+from typing import List, Tuple, Any
 from email.message import EmailMessage
 from prettytable import PrettyTable
 
 from snowflake_service import SnowflakeDB
-from environment import SNOWFLAKE_CONFIG, EMAIL_FROM, EMAIL_PASSWORD
+from environment import (
+    SNOWFLAKE_CONFIG, EMAIL_FROM, 
+    EMAIL_TO_1, EMAIL_TO_2, EMAIL_PASSWORD)
 
 def query_node_metrics() -> List[Tuple[Any, ...]]:
     MetricDB = SnowflakeDB(SNOWFLAKE_CONFIG)
@@ -51,7 +53,7 @@ def send_email() -> None:
 
     msg = EmailMessage()
     msg['From'] = EMAIL_FROM
-    msg['To'] = EMAIL_FROM
+    msg['To'] = (EMAIL_TO_1, EMAIL_TO_2)
     msg['Subject'] = 'Test From Local Python'
     msg.set_content(html_table, subtype='html')
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:

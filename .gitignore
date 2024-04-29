@@ -52,3 +52,4 @@ logs/
 tests/spec-tests/
 
 venv
+__pycache__

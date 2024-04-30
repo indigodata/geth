@@ -34,9 +34,10 @@ def query_node_metrics() -> pd.DataFrame:
     return node_metrics
 
 def color_pct_difference(val):
-    if val > 50:
+    val_abs = abs(val)
+    if val_abs > 50:
         color = 'red'
-    elif val > 30:
+    elif val_abs > 30:
         color = 'orange'
     else:
         color = ''
@@ -61,17 +62,17 @@ def style_table(df: pd.DataFrame) -> pd.DataFrame:
     return html_table
 
 def send_email() -> None:
-    current_period = datetime.utcnow().strftime('%m-%d-%Y')
-    previous_period = (datetime.utcnow() - timedelta(days=1)).strftime('%m-%d-%Y')
+    current_period = datetime.utcnow().strftime('%m-%d-%Y %H:%M:%S')
+    previous_period = (datetime.utcnow() - timedelta(days=1)).strftime('%m-%d-%Y %H:%M:%S')
 
     node_metrics = query_node_metrics()
     formated_table = format_table(node_metrics)
     html_table = transform(style_table(formated_table), cssutils_logging_level=logging.FATAL)
 
     run_metadata = (
-        f"<p>Observation periods are the last 24 hours before the stated date.<br>"
-        f"Run Period: {current_period}<br>"
-        f"Previous Period: {previous_period}</p>"
+        f"<p>Observation periods are 24 hours, ending at the stated times below.<br>"
+        f"Run Period: {current_period}<br>" # todo add hour 
+        f"Previous Period: {previous_period}</p>" # todo add hour 
     )
 
     html_content = html_table + run_metadata
@@ -79,7 +80,7 @@ def send_email() -> None:
     msg = EmailMessage()
     msg['From'] = EMAIL_FROM
     msg['To'] = (EMAIL_TO_1, EMAIL_TO_2)
-    msg['Subject'] = f'Network Feed Metrics {current_period}'
+    msg['Subject'] = f"Network Feed Metrics {datetime.utcnow().strftime('%m-%d-%Y')}"
     msg.set_content(html_content, subtype='html')
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.login(EMAIL_FROM, EMAIL_PASSWORD)

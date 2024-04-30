@@ -1,16 +1,18 @@
-import os
+import logging
 import smtplib
 
-from typing import List, Tuple, Any
-from email.message import EmailMessage
-from prettytable import PrettyTable
+import pandas as pd
 
+from datetime import datetime, timedelta
+from email.message import EmailMessage
+
+from premailer import transform
 from snowflake_service import SnowflakeDB
 from environment import (
     SNOWFLAKE_CONFIG, EMAIL_FROM, 
     EMAIL_TO_1, EMAIL_TO_2, EMAIL_PASSWORD)
 
-def query_node_metrics() -> List[Tuple[Any, ...]]:
+def query_node_metrics() -> pd.DataFrame:
     MetricDB = SnowflakeDB(SNOWFLAKE_CONFIG)
     query = """
     SELECT
@@ -18,46 +20,70 @@ def query_node_metrics() -> List[Tuple[Any, ...]]:
         , COUNT_IF(msg_timestamp > SYSDATE() - INTERVAL '1 day')        AS current_msg_ct
         , COUNT_IF(msg_timestamp BETWEEN SYSDATE() - INTERVAL '2 day'
             AND SYSDATE() - INTERVAL '1 day')                           AS previous_msg_ct
-        , (current_msg_ct - previous_msg_ct) / previous_msg_ct * 100    AS pct_difference
+        , ROUND(
+            (current_msg_ct - previous_msg_ct) / previous_msg_ct * 100,
+            2
+          )                                                             AS pct_difference
     FROM keystone_offchain.network_feed
     WHERE msg_timestamp >= SYSDATE() - INTERVAL '2 day'
     GROUP BY 1
     ORDER BY 1
     """
 
-    node_metrics = MetricDB.query(query)
+    node_metrics = MetricDB.query(query=query, pandas=True)
     return node_metrics
 
-def format_snowflake_response(snowflake_response) -> PrettyTable:
-    table = PrettyTable()
-    table.field_names = ["Node ID", "Current Msg Ct", "Previous Msg Ct", "Percent Difference"]
+def color_pct_difference(val):
+    if val > 50:
+        color = 'red'
+    elif val > 30:
+        color = 'orange'
+    else:
+        color = ''
+    return f'background-color: {color}'
 
-    for tuple_row in snowflake_response:
-        table.add_row(list(tuple_row))
+def format_numbers(value):
+    if value >= 1000000:
+        return f'{round(value / 1000000)}M'
+    elif value >= 1000:
+        return f'{round(value / 1000)}k'
+    else:
+        return str(value)
     
-    return table
+def format_table(df: pd.DataFrame) -> pd.DataFrame:
+    df.index += 1
+    df[['CURRENT_MSG_CT', 'PREVIOUS_MSG_CT']] = df[['CURRENT_MSG_CT', 'PREVIOUS_MSG_CT']].map(format_numbers)
+    return df
+
+def style_table(df: pd.DataFrame) -> pd.DataFrame:
+    styled_df = df.style.map(color_pct_difference, subset=['PCT_DIFFERENCE'])
+    html_table = styled_df.to_html()
+    return html_table
 
 def send_email() -> None:
-    node_metrics = query_node_metrics()
-    metric_table = format_snowflake_response(node_metrics)
-    
-    html_table = f"""
-    <html>
-    <body>
-    <pre>
-    {metric_table.get_string()}
-    </pre>
-    </body>
-    </html>
-    """
+    current_period = datetime.utcnow().strftime('%m-%d-%Y')
+    previous_period = (datetime.utcnow() - timedelta(days=1)).strftime('%m-%d-%Y')
 
+    node_metrics = query_node_metrics()
+    formated_table = format_table(node_metrics)
+    html_table = transform(style_table(formated_table), cssutils_logging_level=logging.FATAL)
+
+    run_metadata = (
+        f"<p>Observation periods are the last 24 hours before the stated date.<br>"
+        f"Run Period: {current_period}<br>"
+        f"Previous Period: {previous_period}</p>"
+    )
+
+    html_content = html_table + run_metadata
+        
     msg = EmailMessage()
     msg['From'] = EMAIL_FROM
     msg['To'] = (EMAIL_TO_1, EMAIL_TO_2)
-    msg['Subject'] = 'Test From Local Python'
-    msg.set_content(html_table, subtype='html')
+    msg['Subject'] = f'Network Feed Metrics {current_period}'
+    msg.set_content(html_content, subtype='html')
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.login(EMAIL_FROM, EMAIL_PASSWORD)
         smtp.send_message(msg)
 
-send_email()
+if __name__ == '__main__':
+    send_email()

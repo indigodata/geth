@@ -1,5 +1,6 @@
 import sys
 import snowflake.connector
+import pandas as pd
 
 from typing import List, Tuple, Any
 
@@ -31,13 +32,17 @@ class SnowflakeDB:
 
             self.conn.commit()
 
-    def query(self, query: str,  params: dict = None) -> List[Tuple[Any, ...]]:
+    def query(self, query: str, pandas: bool = False, params: dict = None) -> List[Tuple[Any, ...]] | pd.DataFrame:
         try:
             if params:
                 self.cursor.execute(query, params)
             else:
                 self.cursor.execute(query)
-            result = self.cursor.fetchall()
+
+            if pandas:
+                result = self.cursor.fetch_pandas_all()
+            else:
+                result = self.cursor.fetchall()
             return result
         except Exception as err:
             print(f'Error querying Snowflake: {err}')
